@@ -50,7 +50,7 @@ When you run a push via `gits`, it automatically:
 
 ## 🛠 Tech Stack
 
-- **Runtime:** [Node.js](https://nodejs.org/) (Requires v14+ / ES Modules)
+- **Runtime:** [Node.js](https://nodejs.org/) (Requires v18+ / ES Modules)
 - **CLI Framework:** [Commander.js](https://github.com/tj/commander.js/)
 - **Git Interoperability:** [simple-git](https://github.com/steveukx/git-js)
 - **Configuration Storage:** [conf](https://github.com/sindresorhus/conf)
