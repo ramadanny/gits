@@ -1,5 +1,4 @@
 import { simpleGit } from 'simple-git';
-import chalk from 'chalk';
 
 const git = simpleGit();
 
@@ -12,9 +11,9 @@ export default function registerRemoteCommand(program) {
     .action(async (url) => {
       try {
         await git.addRemote('origin', url);
-        console.log(chalk.green(`Remote origin added successfully: ${url}`));
+        global.log.info(`Remote origin added successfully: ${url}`);
       } catch (error) {
-        console.log(chalk.red('Failed to add remote. Make sure origin does not already exist.'));
+        global.log.error('Failed to add remote. Make sure origin does not already exist.');
       }
     });
 
@@ -24,9 +23,9 @@ export default function registerRemoteCommand(program) {
     .action(async (url) => {
       try {
         await git.remote(['set-url', 'origin', url]);
-        console.log(chalk.green(`Remote origin changed successfully to: ${url}`));
+        global.log.info(`Remote origin changed successfully to: ${url}`);
       } catch (error) {
-        console.log(chalk.red('Failed to change remote. Make sure origin exists.'));
+        global.log.error('Failed to change remote. Make sure origin exists.');
       }
     });
 
@@ -37,15 +36,16 @@ export default function registerRemoteCommand(program) {
       try {
         const remotes = await git.getRemotes(true);
         if (remotes.length === 0) {
-          console.log(chalk.yellow('No remote URL found in this project.'));
+          global.log.info('No remote URL found in this project.');
           return;
         }
-        console.log(chalk.cyan('Remote Repositories:'));
+        global.log.info('Remote Repositories:');
         remotes.forEach(r => {
-          console.log(chalk.white(`   - ${r.name}: ${r.refs.push}`));
+          global.log.info(`   - ${r.name}: ${r.refs.push}`);
         });
       } catch (error) {
-        console.log(chalk.red('Failed to read remotes.'));
+        global.log.error('Error: Not a git repository or Git not installed.');
+        global.log.error(error.message);
       }
     });
 }
