@@ -2,7 +2,7 @@ import { simpleGit } from "simple-git";
 
 const git = simpleGit();
 
-export default function branchCmdsprogram) {
+export default function branchCmds(program) {
     program
         .command("branch <name>")
         .description("Switch to an existing branch or create a new one")
