@@ -2,7 +2,7 @@
 
 An advanced, intuitive Command Line Interface (CLI) wrapper for Git, designed to automate push operations, manage remotes, and enforce security policies (like preventing accidental credential leaks).
 
-Built with Node.js, ~gits~ abstracts complex Git workflows into simple, safe commands while ensuring your repository remains clean and secure.
+Built with Node.js, `gits` abstracts complex Git workflows into simple, safe commands while ensuring your repository remains clean and secure.
 
 ---
 
@@ -26,12 +26,12 @@ Built with Node.js, ~gits~ abstracts complex Git workflows into simple, safe com
 
 ## 🎯 Project Overview
 
-**GitS** aims to reduce friction in day-to-day Git operations. While traditional Git requires users to manually track status, handle credential management via credential helpers, and carefully avoid pushing sensitive files, ~gits~ provides an all-in-one execution pipeline.
+**GitS** aims to reduce friction in day-to-day Git operations. While traditional Git requires users to manually track status, handle credential management via credential helpers, and carefully avoid pushing sensitive files, `gits` provides an all-in-one execution pipeline.
 
-When you run a push via ~gits~, it automatically:
+When you run a push via `gits`, it automatically:
 
-- Validates the presence of a ~.gitignore~ (generating one if missing).
-- Scans for exposed secrets (~.env~, SSH keys) and prevents pushes if they are tracked.
+- Validates the presence of a `.gitignore` (generating one if missing).
+- Scans for exposed secrets (`.env`, SSH keys) and prevents pushes if they are tracked.
 - Checks Git status to prevent empty commits.
 - Uses a globally configured Personal Access Token (PAT) to securely authenticate remote operations.
 
@@ -39,8 +39,8 @@ When you run a push via ~gits~, it automatically:
 
 ## ✨ Key Features
 
-- **Automated Security Scanning:** Pre-push checks to detect and block banned files (~.env~, ~id_rsa~, ~.pem~, etc.) from being leaked to remotes.
-- **Auto-Initialization:** Automatically initializes Git and standard ~.gitignore~ files if they are missing.
+- **Automated Security Scanning:** Pre-push checks to detect and block banned files (`.env`, `id_rsa`, `.pem`, etc.) from being leaked to remotes.
+- **Auto-Initialization:** Automatically initializes Git and standard `.gitignore` files if they are missing.
 - **Centralized Configuration:** Built-in credential management utilizing global system configuration stores.
 - **Multi-Remote Push:** Push to all registered remotes simultaneously with a single flag.
 - **Commit Safety Net:** Soft undo functionality to instantly revert your last commit without losing staged changes.
@@ -54,7 +54,7 @@ When you run a push via ~gits~, it automatically:
 - **CLI Framework:** [Commander.js](https://github.com/tj/commander.js/)
 - **Git Interoperability:** [simple-git](https://github.com/steveukx/git-js)
 - **Configuration Storage:** [conf](https://github.com/sindresorhus/conf)
-- **Styling:** Custom ANSI escape codes (with a fallback ~chalk~ dependency)
+- **Styling:** Custom ANSI escape codes (with a fallback `chalk` dependency)
 
 ---
 
@@ -78,17 +78,17 @@ gits/
 
 ### Architectural Flow
 
-1. **Routing:** ~src/index.js~ acts as the dispatcher, rendering the banner and delegating arguments to the appropriate command module via ~commander~.
-2. **Context:** Commands leverage ~simple-git~ for synchronous-like promise wrappers over the local Git binary.
-3. **State:** User state (tokens/usernames) is securely persisted in the user's home directory under ~ramadanny-gits~ using the ~conf~ package.
+1. **Routing:** `src/index.js` acts as the dispatcher, rendering the banner and delegating arguments to the appropriate command module via `commander`.
+2. **Context:** Commands leverage `simple-git` for synchronous-like promise wrappers over the local Git binary.
+3. **State:** User state (tokens/usernames) is securely persisted in the user's home directory under `ramadanny-gits` using the `conf` package.
 
 ---
 
 ## ⚙️ Prerequisites
 
-Before installing ~gits~, ensure your environment meets the following requirements:
+Before installing `gits`, ensure your environment meets the following requirements:
 
-- **Node.js**: ~v18.0.0~ or higher.
+- **Node.js**: `v18.0.0` or higher.
 - **Git**: Installed and available in your system's PATH.
 
 ---
@@ -116,7 +116,7 @@ Currently, the tool can be installed globally from the source directory.
     npm link
     ```
 
-    _(Alternatively, use ~npm install -g .~)_
+    _(Alternatively, use `npm install -g .`)_
 
 4. **Verify Installation:**
     ```bash
@@ -127,7 +127,7 @@ Currently, the tool can be installed globally from the source directory.
 
 ## 🔧 Configuration
 
-Before pushing code, you must configure your Git platform credentials. ~gits~ uses a Personal Access Token (PAT) rather than prompting for a password.
+Before pushing code, you must configure your Git platform credentials. `gits` uses a Personal Access Token (PAT) rather than prompting for a password.
 
 ### Interactive Setup
 
@@ -152,7 +152,7 @@ gits set token <your-personal-access-token>
 
 ## 💻 Usage & Commands
 
-### 1. Push Code (~gits push~)
+### 1. Push Code (`gits push`)
 
 The crown jewel of the CLI. Adds, commits, checks security, and pushes.
 
@@ -162,11 +162,11 @@ gits push . "Initial commit"
 
 **Options:**
 
-- ~-f, --force~: Force push to the remote.
-- ~-u, --set-upstream~: Set upstream tracking for the branch.
-- ~-a, --all~: Push to all registered remotes at once.
+- `-f, --force`: Force push to the remote.
+- `-u, --set-upstream`: Set upstream tracking for the branch.
+- `-a, --all`: Push to all registered remotes at once.
 
-### 2. Manage Remotes (~gits remote~)
+### 2. Manage Remotes (`gits remote`)
 
 View and configure your remote connections.
 
@@ -181,7 +181,7 @@ gits remote add https://github.com/user/repo.git
 gits remote set https://github.com/user/repo.git
 ```
 
-### 3. Manage Branches (~gits branch~)
+### 3. Manage Branches (`gits branch`)
 
 Seamlessly switch branches or create a new one if it doesn't exist.
 
@@ -189,9 +189,9 @@ Seamlessly switch branches or create a new one if it doesn't exist.
 gits branch feature/new-login
 ```
 
-### 4. Undo Last Commit (~gits undo~)
+### 4. Undo Last Commit (`gits undo`)
 
-Made a mistake in your commit message? Missed a file? This command performs a ~git reset --soft HEAD~1~, stripping the last commit but keeping all your file changes staged.
+Made a mistake in your commit message? Missed a file? This command performs a `git reset --soft HEAD`1`, stripping the last commit but keeping all your file changes staged.
 
 ```bash
 gits undo
@@ -201,17 +201,17 @@ gits undo
 
 ## 🛡 Security Features
 
-~gits~ prevents catastrophic data leaks by intercepting push operations.
+`gits` prevents catastrophic data leaks by intercepting push operations.
 
 **Banned Files:**
 The push command will abort if it detects untracked or unignored files matching:
 
-- ~.env~ (Except ~.env.example~)
-- ~id_rsa~ / ~id_ed25519~
-- ~credentials.json~
-- ~_.key~ / ~_.pem~
+- `.env` (Except `.env.example`)
+- `id_rsa` / `id_ed25519`
+- `credentials.json`
+- `_.key` / `_.pem`
 
-If you trigger this fail-safe, ~gits~ will explicitly list the vulnerable files and instruct you to add them to your ~.gitignore~ before allowing the push to continue.
+If you trigger this fail-safe, `gits` will explicitly list the vulnerable files and instruct you to add them to your `.gitignore` before allowing the push to continue.
 
 ---
 
@@ -220,17 +220,17 @@ If you trigger this fail-safe, ~gits~ will explicitly list the vulnerable files 
 **Error: "Run 'gits setup' first."**
 
 - **Cause:** You are trying to push without configuring your token.
-- **Fix:** Run ~gits setup~ and provide your credentials.
+- **Fix:** Run `gits setup` and provide your credentials.
 
 **Error: "CRITICAL: Sensitive file detected and NOT ignored!"**
 
-- **Cause:** You have a file like ~.env~ in your directory, and it is missing from ~.gitignore~.
-- **Fix:** Add the exact filename to ~.gitignore~ or delete the file.
+- **Cause:** You have a file like `.env` in your directory, and it is missing from `.gitignore`.
+- **Fix:** Add the exact filename to `.gitignore` or delete the file.
 
 **Error: "Failed to push... Authentication failed"**
 
-- **Cause:** Your Personal Access Token has expired or lacks ~repo~ scopes.
-- **Fix:** Generate a new PAT on your Git provider and run ~gits set token <new-token>~.
+- **Cause:** Your Personal Access Token has expired or lacks `repo` scopes.
+- **Fix:** Generate a new PAT on your Git provider and run `gits set token <new-token>`.
 
 ---
 
@@ -239,8 +239,8 @@ If you trigger this fail-safe, ~gits~ will explicitly list the vulnerable files 
 Contributions, issues, and feature requests are welcome!
 
 1. Fork the project.
-2. Create your feature branch: ~gits branch feature/AmazingFeature~
-3. Commit your changes (Feel free to use ~gits push . "Add some AmazingFeature"~).
+2. Create your feature branch: `gits branch feature/AmazingFeature`
+3. Commit your changes (Feel free to use `gits push . "Add some AmazingFeature"`).
 4. Push to the branch.
 5. Open a Pull Request.
 
