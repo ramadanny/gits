@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
@@ -226,7 +227,11 @@ Diff:
 	}
 	logger.Info(fmt.Sprintf("Pushing to %s...", safeUrlToPrint))
 
-	out, err := gitops.Run(pushArgs...)
+	pushCmdExec := exec.Command("git", pushArgs...)
+	pushCmdExec.Stdout = os.Stdout
+	pushCmdExec.Stderr = os.Stderr
+	err = pushCmdExec.Run()
+
 	if err != nil {
 		logger.Error("Failed to push.")
 		if committedJustNow {
@@ -235,8 +240,5 @@ Diff:
 		}
 	} else {
 		logger.Info("Successfully pushed.")
-		if out != "" {
-			fmt.Println(out)
-		}
 	}
 }
