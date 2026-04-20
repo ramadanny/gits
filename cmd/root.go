@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 
@@ -55,4 +54,3 @@ func applyGradient(text string) string {
 	}
 	return strings.Join(result, "\n")
 }
-
