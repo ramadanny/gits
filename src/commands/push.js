@@ -18,15 +18,22 @@ export default function pushCmds(program) {
         .option("-a, --all", "Push to all registered remotes simultaneously")
         .action(async (targetPath, message, options) => {
             try {
+                if (!fs.existsSync(".git")) {
+                    global.log.info("No git repository found. Initializing.");
+                    await git.init();
+                }
+
                 try {
                     await git.status();
                 } catch (err) {
                     if (
                         err.message.includes("dubious ownership") ||
-                        err.message.includes("safe.directory")
+                        err.message.includes("safe.directory") ||
+                        err.message.includes("GIT_DISCOVERY_ACROSS_FILESYSTEM") ||
+                        err.message.includes("not a git repository")
                     ) {
                         global.log.info(
-                            "Detected dubious ownership. Automatically marking directory as safe."
+                            "Detected restricted environment or dubious ownership. Automatically marking directory as safe."
                         );
                         await git.raw([
                             "config",
@@ -72,11 +79,6 @@ export default function pushCmds(program) {
                         global.log.info("Please add the above files to .gitignore.");
                         return;
                     }
-                }
-
-                if (!fs.existsSync(".git")) {
-                    global.log.info("No git repository found. Initializing.");
-                    await git.init();
                 }
 
                 const username = config.get("username");
