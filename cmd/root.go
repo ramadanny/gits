@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"strings"
