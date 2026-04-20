@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"strings"
 
@@ -47,7 +46,6 @@ func executePush(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Dubious ownership check logic
 	_, err := gitops.Run("status")
 	if err != nil && (strings.Contains(err.Error(), "dubious ownership") || strings.Contains(err.Error(), "safe.directory")) {
 		logger.Info("Detected dubious ownership. Automatically marking directory as safe.")
@@ -63,7 +61,6 @@ func executePush(cmd *cobra.Command, args []string) {
 		logger.Info("Created default .gitignore.")
 	}
 
-	// EXACT LOGIC FROM YOUR NODE.JS (Scanner that only checks root folder)
 	logger.Info("Scanning for sensitive data.")
 	files, _ := os.ReadDir(".")
 	bannedFiles := []string{".env", "id_rsa", "id_ed25519", "credentials.json"}
@@ -142,38 +139,22 @@ func executePush(cmd *cobra.Command, args []string) {
 
 			ctx := context.Background()
 
-			// --- HACK: BYPASS DNS TERMUX/ANDROID ---
-			// Memaksa resolusi DNS lewat Google (8.8.8.8) biar user Termux nggak perlu install resolv-conf
-			customDialer := &net.Dialer{
-				Resolver: &net.Resolver{
-					PreferGo: true,
-					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-						d := net.Dialer{}
-						return d.DialContext(ctx, "udp", "8.8.8.8:53")
-					},
+			net.DefaultResolver = &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+					d := net.Dialer{}
+					return d.DialContext(ctx, "udp", "8.8.8.8:53")
 				},
 			}
 
-			customTransport := &http.Transport{
-				DialContext: customDialer.DialContext,
-			}
-
-			httpClient := &http.Client{
-				Transport: customTransport,
-			}
-			// ---------------------------------------
-
-			// Init client Gemini pakai custom HTTP client
-			client, err := genai.NewClient(ctx, option.WithAPIKey(geminiKey), option.WithHTTPClient(httpClient))
-			
+			client, err := genai.NewClient(ctx, option.WithAPIKey(geminiKey))
 			if err != nil {
 				logger.Error(fmt.Sprintf("AI Client Error: %v", err))
 				return
 			}
 			defer client.Close()
 
-			// Menggunakan model flash yang lebih stabil
-			model := client.GenerativeModel("gemini-flash-lite-latest") 
+			model := client.GenerativeModel("gemini-flash-lite-latest")
 			prompt := fmt.Sprintf(`Analyze the provided git diff and generate a concise, professional commit message.
 You MUST adhere strictly to the Conventional Commits specification.
 Use one of the following types based on the changes:
@@ -194,9 +175,9 @@ Rules:
 
 Diff:
 %s`, diff)
-			
+
 			resp, err := model.GenerateContent(ctx, genai.Text(prompt))
-			
+
 			if err != nil {
 				logger.Error(fmt.Sprintf("Failed to generate message from Gemini: %v", err))
 				return
@@ -218,7 +199,6 @@ Diff:
 		logger.Info("No uncommitted changes detected. Proceeding to push existing commits...")
 	}
 
-	// Inject Username & Token to Remote URL (Termux Survival Mode)
 	remoteUrlOut, _ := gitops.Run("remote", "get-url", "origin")
 	remoteUrl := strings.TrimSpace(remoteUrlOut)
 
@@ -226,7 +206,7 @@ Diff:
 		authStr := fmt.Sprintf("https://%s:%s@", username, token)
 		remoteUrl = strings.Replace(remoteUrl, "https://", authStr, 1)
 	} else if remoteUrl == "" {
-		remoteUrl = "origin" // Fallback aman
+		remoteUrl = "origin"
 	}
 
 	pushArgs := []string{"push"}
@@ -239,13 +219,12 @@ Diff:
 		pushArgs = append(pushArgs, remoteUrl, "HEAD")
 	}
 
-	// Print URL aman tanpa membocorkan token di Terminal
 	safeUrlParts := strings.Split(remoteUrl, "@")
 	safeUrlToPrint := remoteUrl
 	if len(safeUrlParts) > 1 {
 		safeUrlToPrint = safeUrlParts[len(safeUrlParts)-1]
 	}
-	logger.Info(fmt.Sprintf("Pushing to %s...", safeUrlToPrint)) 
+	logger.Info(fmt.Sprintf("Pushing to %s...", safeUrlToPrint))
 
 	out, err := gitops.Run(pushArgs...)
 	if err != nil {
