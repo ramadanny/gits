@@ -1,6 +1,6 @@
 {
     "name": "gits",
-    "version": "0.0.34",
+    "version": "0.0.40",
     "description": "A simple CLI tool to automate Git Push operations",
     "main": "src/index.js",
     "type": "module",
