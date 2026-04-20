@@ -105,8 +105,8 @@ gits branch feature/new-payment-gateway
 Manage your repository origins without touching standard git syntax.
 ```bash
 gits remote check
-gits remote add [https://github.com/user/repo.git](https://github.com/user/repo.git)
-gits remote set [https://github.com/user/repo.git](https://github.com/user/repo.git)
+gits remote add https://github.com/user/repo.git
+gits remote set https://github.com/user/repo.git
 ```
 
 ### 5. Undo Operations
