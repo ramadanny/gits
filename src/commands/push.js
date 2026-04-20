@@ -1,6 +1,7 @@
 import { simpleGit } from "simple-git";
 import Conf from "conf";
 import fs from "fs";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const git = simpleGit();
 const config = new Conf({ projectName: "ramadanny-gits" });
@@ -10,8 +11,8 @@ const BANNED_EXTENSIONS = [".key", ".pem"];
 
 export default function pushCmds(program) {
     program
-        .command("push <path> <message>")
-        .description("Push with safety checks, auto-gitignore, and status summary")
+        .command("push <path> [message]")
+        .description("Push with safety checks. Use 'auto' as message for AI-generated commit.")
         .option("-f, --force", "Force push")
         .option("-u, --set-upstream", "Set upstream tracking")
         .option("-a, --all", "Push to all registered remotes simultaneously")
@@ -95,7 +96,59 @@ export default function pushCmds(program) {
                 global.log.info(`   Deleted files:  ${deletedCount}\n`);
 
                 await git.add(targetPath);
-                await git.commit(message);
+
+                let finalMessage = message;
+
+                if (!finalMessage || finalMessage.toLowerCase() === "auto") {
+                    const geminiKey = config.get("ramadanny-gits-gemini-key");
+                    if (!geminiKey) {
+                        global.log.error('Error: Gemini API Key not found. Please run "gits set gemini <key>" first.');
+                        return;
+                    }
+
+                    global.log.info("Analyzing changes with Gemini AI...");
+                    const diff = await git.diff(["--cached"]);
+
+                    if (!diff) {
+                        global.log.error("Error: No diff output available to generate commit message.");
+                        return;
+                    }
+
+                    try {
+                        const genAI = new GoogleGenerativeAI(geminiKey);
+                        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                        
+                        const prompt = `Analyze the provided git diff and generate a concise, professional commit message.
+You MUST adhere strictly to the Conventional Commits specification.
+Use one of the following types based on the changes:
+- feat: A new feature
+- fix: A bug fix
+- docs: Documentation only changes
+- style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+- refactor: A code change that neither fixes a bug nor adds a feature
+- perf: A code change that improves performance
+- test: Adding missing tests or correcting existing tests
+- chore: Changes to the build process or auxiliary tools and libraries such as documentation generation
+
+Rules:
+1. Output ONLY the raw commit message string.
+2. Do NOT include markdown formatting, backticks, or quotes.
+3. Do NOT add any conversational text or explanations.
+4. Keep the first line (summary) under 72 characters.
+
+Diff:
+${diff.slice(0, 10000)}`;
+
+                        const result = await model.generateContent(prompt);
+                        finalMessage = result.response.text().trim();
+                        global.log.info(`\x1b[36mAuto-generated commit message: ${finalMessage}\x1b[0m`);
+                    } catch (aiError) {
+                        global.log.error(`Failed to generate message from Gemini: ${aiError.message}`);
+                        return;
+                    }
+                }
+
+                await git.commit(finalMessage);
 
                 const remotes = await git.getRemotes(true);
                 if (remotes.length === 0) {

@@ -22,22 +22,34 @@ export default function setCmds(program) {
             global.log.info("Token saved successfully.");
         });
 
+    setCmd
+        .command("gemini <key>")
+        .description("Save your Gemini API Key for auto-commit messages")
+        .action((key) => {
+            config.set("ramadanny-gits-gemini-key", key);
+            global.log.info("Gemini API Key saved successfully.");
+        });
+
     program
         .command("setup")
-        .description("Interactive setup for username and token")
+        .description("Interactive setup for username, token, and Gemini API")
         .action(() => {
             const rl = readline.createInterface({
                 input: process.stdin,
                 output: process.stdout,
             });
 
-            // Menggunakan ANSI escape code \x1b[37m untuk putih langsung di string pertanyaan
             rl.question("\x1b[37mEnter your GitHub Username: \x1b[0m", (usn) => {
                 rl.question("\x1b[37mEnter your GitHub Personal Access Token: \x1b[0m", (tok) => {
-                    config.set("username", usn);
-                    config.set("token", tok);
-                    global.log.info("\nConfiguration saved successfully!");
-                    rl.close();
+                    rl.question("\x1b[37mEnter your Gemini API Key (optional, press enter to skip): \x1b[0m", (gemini) => {
+                        config.set("username", usn);
+                        config.set("token", tok);
+                        if (gemini.trim() !== "") {
+                            config.set("ramadanny-gits-gemini-key", gemini.trim());
+                        }
+                        global.log.info("\nConfiguration saved successfully!");
+                        rl.close();
+                    });
                 });
             });
         });

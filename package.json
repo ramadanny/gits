@@ -16,6 +16,7 @@
     "author": "ramadanny",
     "license": "Apache-2.0",
     "dependencies": {
+        "@google/generative-ai": "^0.24.1",
         "commander": "^14.0.3",
         "conf": "^15.1.0",
         "simple-git": "^3.36.0"
