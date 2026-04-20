@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"strings"
 
@@ -139,15 +141,38 @@ func executePush(cmd *cobra.Command, args []string) {
 			diff, _ := gitops.Run("diff", "--cached")
 
 			ctx := context.Background()
-			client, err := genai.NewClient(ctx, option.WithAPIKey(geminiKey))
+
+			// --- HACK: BYPASS DNS TERMUX/ANDROID ---
+			// Memaksa resolusi DNS lewat Google (8.8.8.8) biar user Termux nggak perlu install resolv-conf
+			customDialer := &net.Dialer{
+				Resolver: &net.Resolver{
+					PreferGo: true,
+					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+						d := net.Dialer{}
+						return d.DialContext(ctx, "udp", "8.8.8.8:53")
+					},
+				},
+			}
+
+			customTransport := &http.Transport{
+				DialContext: customDialer.DialContext,
+			}
+
+			httpClient := &http.Client{
+				Transport: customTransport,
+			}
+			// ---------------------------------------
+
+			// Init client Gemini pakai custom HTTP client
+			client, err := genai.NewClient(ctx, option.WithAPIKey(geminiKey), option.WithHTTPClient(httpClient))
 			
-			// TANGKAP ERROR INIT CLIENT
 			if err != nil {
 				logger.Error(fmt.Sprintf("AI Client Error: %v", err))
 				return
 			}
 			defer client.Close()
 
+			// Menggunakan model flash yang lebih stabil
 			model := client.GenerativeModel("gemini-flash-lite-latest") 
 			prompt := fmt.Sprintf(`Analyze the provided git diff and generate a concise, professional commit message.
 You MUST adhere strictly to the Conventional Commits specification.
@@ -165,14 +190,13 @@ Rules:
 1. Output ONLY the raw commit message string.
 2. Do NOT include markdown formatting, backticks, or quotes.
 3. Do NOT add any conversational text or explanations.
-4. Keep the first line (summary) under 70 characters.
+4. Keep the first line (summary) under 72 characters.
 
 Diff:
 %s`, diff)
 			
 			resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 			
-			// TANGKAP ERROR REQUEST GENERATE
 			if err != nil {
 				logger.Error(fmt.Sprintf("Failed to generate message from Gemini: %v", err))
 				return
@@ -215,7 +239,7 @@ Diff:
 		pushArgs = append(pushArgs, remoteUrl, "HEAD")
 	}
 
-	// Print URL aman tanpa membocorkan token
+	// Print URL aman tanpa membocorkan token di Terminal
 	safeUrlParts := strings.Split(remoteUrl, "@")
 	safeUrlToPrint := remoteUrl
 	if len(safeUrlParts) > 1 {
