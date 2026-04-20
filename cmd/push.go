@@ -140,20 +140,26 @@ func executePush(cmd *cobra.Command, args []string) {
 
 			ctx := context.Background()
 			client, err := genai.NewClient(ctx, option.WithAPIKey(geminiKey))
-			if err == nil {
-				defer client.Close()
-				model := client.GenerativeModel("gemini-flash-lite-latest")
-				prompt := fmt.Sprintf(`Analyze the provided git diff and generate a concise,Analyze the provided git diff and generate a concise, professional commit message.
+			
+			// TANGKAP ERROR INIT CLIENT
+			if err != nil {
+				logger.Error(fmt.Sprintf("AI Client Error: %v", err))
+				return
+			}
+			defer client.Close()
+
+			model := client.GenerativeModel("gemini-flash-lite-latest") 
+			prompt := fmt.Sprintf(`Analyze the provided git diff and generate a concise, professional commit message.
 You MUST adhere strictly to the Conventional Commits specification.
 Use one of the following types based on the changes:
 - feat: A new feature
 - fix: A bug fix
 - docs: Documentation only changes
-- style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+- style: Changes that do not affect the meaning of the code
 - refactor: A code change that neither fixes a bug nor adds a feature
 - perf: A code change that improves performance
 - test: Adding missing tests or correcting existing tests
-- chore: Changes to the build process or auxiliary tools and libraries such as documentation generation
+- chore: Changes to the build process
 
 Rules:
 1. Output ONLY the raw commit message string.
@@ -163,16 +169,22 @@ Rules:
 
 Diff:
 %s`, diff)
-				
-				resp, err := model.GenerateContent(ctx, genai.Text(prompt))
-				if err == nil && len(resp.Candidates) > 0 {
-					finalMessage = fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
-					finalMessage = strings.TrimSpace(finalMessage)
-					logger.Info(fmt.Sprintf("message: %s", finalMessage))
-				} else {
-					logger.Error("Failed to generate message from Gemini.")
-					return
-				}
+			
+			resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+			
+			// TANGKAP ERROR REQUEST GENERATE
+			if err != nil {
+				logger.Error(fmt.Sprintf("Failed to generate message from Gemini: %v", err))
+				return
+			}
+
+			if len(resp.Candidates) > 0 && resp.Candidates[0].Content != nil && len(resp.Candidates[0].Content.Parts) > 0 {
+				finalMessage = fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
+				finalMessage = strings.TrimSpace(finalMessage)
+				logger.Info(fmt.Sprintf("message: %s", finalMessage))
+			} else {
+				logger.Error("Gemini returned empty response or blocked by safety settings.")
+				return
 			}
 		}
 
@@ -182,21 +194,36 @@ Diff:
 		logger.Info("No uncommitted changes detected. Proceeding to push existing commits...")
 	}
 
-	// Simplified push logic matching your intent
+	// Inject Username & Token to Remote URL (Termux Survival Mode)
+	remoteUrlOut, _ := gitops.Run("remote", "get-url", "origin")
+	remoteUrl := strings.TrimSpace(remoteUrlOut)
+
+	if strings.HasPrefix(remoteUrl, "https://") && username != "" && token != "" {
+		authStr := fmt.Sprintf("https://%s:%s@", username, token)
+		remoteUrl = strings.Replace(remoteUrl, "https://", authStr, 1)
+	} else if remoteUrl == "" {
+		remoteUrl = "origin" // Fallback aman
+	}
+
 	pushArgs := []string{"push"}
 	if force {
 		pushArgs = append(pushArgs, "-f")
 	}
 	if setUpstream {
-		pushArgs = append(pushArgs, "-u", "origin", "HEAD")
+		pushArgs = append(pushArgs, "-u", remoteUrl, "HEAD")
 	} else {
-		pushArgs = append(pushArgs, "origin", "HEAD")
+		pushArgs = append(pushArgs, remoteUrl, "HEAD")
 	}
 
-	logger.Info("Pushing...")
-	// Note: Go exec command doesn't easily interpolate https://user:token@ url directly in the push command 
-	// without overriding the git config temporarily. We rely on standard git auth here.
-	_, err = gitops.Run(pushArgs...)
+	// Print URL aman tanpa membocorkan token
+	safeUrlParts := strings.Split(remoteUrl, "@")
+	safeUrlToPrint := remoteUrl
+	if len(safeUrlParts) > 1 {
+		safeUrlToPrint = safeUrlParts[len(safeUrlParts)-1]
+	}
+	logger.Info(fmt.Sprintf("Pushing to %s...", safeUrlToPrint)) 
+
+	out, err := gitops.Run(pushArgs...)
 	if err != nil {
 		logger.Error("Failed to push.")
 		if committedJustNow {
@@ -205,5 +232,8 @@ Diff:
 		}
 	} else {
 		logger.Info("Successfully pushed.")
+		if out != "" {
+			fmt.Println(out)
+		}
 	}
 }
