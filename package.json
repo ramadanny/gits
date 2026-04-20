@@ -1,6 +1,6 @@
 {
     "name": "gits",
-    "version": "0.0.2",
+    "version": "0.0.34",
     "description": "A simple CLI tool to automate Git Push operations",
     "main": "src/index.js",
     "type": "module",
@@ -20,5 +20,22 @@
         "commander": "^14.0.3",
         "conf": "^15.1.0",
         "simple-git": "^3.36.0"
+    },
+    "prettier": {
+        "printWidth": 100,
+        "tabWidth": 4,
+        "useTabs": false,
+        "semi": true,
+        "singleQuote": false,
+        "quoteProps": "as-needed",
+        "jsxSingleQuote": false,
+        "trailingComma": "es5",
+        "bracketSpacing": true,
+        "bracketSameLine": false,
+        "arrowParens": "always",
+        "endOfLine": "lf",
+        "proseWrap": "preserve",
+        "htmlWhitespaceSensitivity": "css",
+        "embeddedLanguageFormatting": "auto"
     }
 }

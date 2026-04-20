@@ -141,7 +141,7 @@ ${diff.slice(0, 10000)}`;
 
                         const result = await model.generateContent(prompt);
                         finalMessage = result.response.text().trim();
-                        global.log.info(`\x1b[36mAuto-generated commit message: ${finalMessage}\x1b[0m`);
+                        global.log.info(`message: ${finalMessage}`);
                     } catch (aiError) {
                         global.log.error(`Failed to generate message from Gemini: ${aiError.message}`);
                         return;
