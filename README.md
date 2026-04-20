@@ -12,24 +12,6 @@ Built with Node.js, `gits` abstracts complex Git workflows into simple, safe com
 
 ---
 
-## 📖 Table of Contents
-
-1. [Project Overview](#project-overview)
-2. [Key Features](#key-features)
-3. [Tech Stack](#tech-stack)
-4. [Project Structure](#project-structure)
-5. [Prerequisites](#prerequisites)
-6. [Installation](#installation)
-7. [Configuration](#configuration)
-8. [Usage & Commands](#usage--commands)
-9. [Security Features](#security-features)
-10. [Troubleshooting](#troubleshooting)
-11. [Contributing](#contributing)
-12. [License](#license)
-13. [Credits](#credits)
-
----
-
 ## 🎯 Project Overview
 
 **GitS** aims to reduce friction in day-to-day Git operations. While traditional Git requires users to manually track status, handle credential management via credential helpers, and carefully avoid pushing sensitive files, `gits` provides an all-in-one execution pipeline.
