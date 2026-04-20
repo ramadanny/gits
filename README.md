@@ -1,5 +1,11 @@
 # 🚀 GitS: Automated & Secure Git CLI
 
+<div align="center">
+
+<img src="https://cdn.jsdelivr.net/gh/ramadanny/cdn@main/gits-logo.png" alt="Header Image" width="100%"/>
+
+</div>
+
 An advanced, intuitive Command Line Interface (CLI) wrapper for Git, designed to automate push operations, manage remotes, and enforce security policies (like preventing accidental credential leaks).
 
 Built with Node.js, `gits` abstracts complex Git workflows into simple, safe commands while ensuring your repository remains clean and secure.
