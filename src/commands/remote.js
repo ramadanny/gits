@@ -1,4 +1,5 @@
 import { simpleGit } from "simple-git";
+import fs from "fs";
 
 const git = simpleGit();
 
@@ -10,6 +11,10 @@ export default function remoteCmds(program) {
         .description("Add new origin URL")
         .action(async (url) => {
             try {
+                if (!fs.existsSync(".git")) {
+                    global.log.info("No git repository found. Initializing...");
+                    await git.init();
+                }
                 await git.addRemote("origin", url);
                 global.log.info(`Remote origin added successfully: ${url}`);
             } catch (error) {

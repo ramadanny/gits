@@ -1,3 +1,4 @@
+// src/commands/push.js
 import { simpleGit } from "simple-git";
 import Conf from "conf";
 import fs from "fs";
@@ -9,6 +10,15 @@ const config = new Conf({ projectName: "ramadanny-gits" });
 const BANNED_FILES = [".env", "id_rsa", "id_ed25519", "credentials.json"];
 const BANNED_EXTENSIONS = [".key", ".pem"];
 
+function formatBytes(bytes, decimals = 2) {
+    if (!+bytes) return "0 Bytes";
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
 export default function pushCmds(program) {
     program
         .command("push <path> [message]")
@@ -19,8 +29,10 @@ export default function pushCmds(program) {
         .action(async (targetPath, message, options) => {
             try {
                 if (!fs.existsSync(".git")) {
-                    global.log.info("No git repository found. Initializing.");
-                    await git.init();
+                    global.log.error(
+                        "Error: Not a git repository. Please run 'gits remote add <url>' first to initialize."
+                    );
+                    return;
                 }
 
                 try {
@@ -28,12 +40,10 @@ export default function pushCmds(program) {
                 } catch (err) {
                     if (
                         err.message.includes("dubious ownership") ||
-                        err.message.includes("safe.directory") ||
-                        err.message.includes("GIT_DISCOVERY_ACROSS_FILESYSTEM") ||
-                        err.message.includes("not a git repository")
+                        err.message.includes("safe.directory")
                     ) {
                         global.log.info(
-                            "Detected restricted environment or dubious ownership. Automatically marking directory as safe."
+                            "Detected dubious ownership. Automatically marking directory as safe."
                         );
                         await git.raw([
                             "config",
@@ -81,6 +91,14 @@ export default function pushCmds(program) {
                     }
                 }
 
+                const remotes = await git.getRemotes(true);
+                if (remotes.length === 0) {
+                    global.log.error(
+                        'Remote "origin" not found. Add it using "gits remote add <url>".'
+                    );
+                    return;
+                }
+
                 const username = config.get("username");
                 const token = config.get("token");
                 if (!username || !token) {
@@ -98,46 +116,58 @@ export default function pushCmds(program) {
                 const createdCount = statusBeforeAdd.not_added.length;
                 const deletedCount = statusBeforeAdd.deleted.length;
 
-                if (modifiedCount === 0 && createdCount === 0 && deletedCount === 0) {
-                    global.log.info("No changes detected. Nothing to push.");
-                    return;
-                }
+                let hasChanges = modifiedCount > 0 || createdCount > 0 || deletedCount > 0;
+                let committedJustNow = false;
 
-                global.log.info("\nStatus Summary:");
-                global.log.info(`   Modified files: ${modifiedCount}`);
-                global.log.info(`   New files:      ${createdCount}`);
-                global.log.info(`   Deleted files:  ${deletedCount}\n`);
-
-                await git.add(targetPath);
-
-                let finalMessage = message;
-
-                if (!finalMessage || finalMessage.toLowerCase() === "auto") {
-                    const geminiKey = config.get("ramadanny-gits-gemini-key");
-                    if (!geminiKey) {
-                        global.log.error(
-                            'Error: Gemini API Key not found. Please run "gits set gemini <key>" first.'
-                        );
-                        return;
+                if (hasChanges) {
+                    let totalSize = 0;
+                    const filesToProcess = [
+                        ...statusBeforeAdd.modified,
+                        ...statusBeforeAdd.not_added,
+                    ];
+                    for (const file of filesToProcess) {
+                        try {
+                            const stat = fs.statSync(file);
+                            totalSize += stat.size;
+                        } catch (e) {}
                     }
 
-                    global.log.info("Analyzing changes with Gemini AI...");
-                    const diff = await git.diff(["--cached"]);
+                    global.log.info("\nStatus Summary:");
+                    global.log.info(`   Modified files: ${modifiedCount}`);
+                    global.log.info(`   New files:      ${createdCount}`);
+                    global.log.info(`   Deleted files:  ${deletedCount}`);
+                    global.log.info(`   Total Size:     ${formatBytes(totalSize)}\n`);
 
-                    if (!diff) {
-                        global.log.error(
-                            "Error: No diff output available to generate commit message."
-                        );
-                        return;
-                    }
+                    await git.add(targetPath);
 
-                    try {
-                        const genAI = new GoogleGenerativeAI(geminiKey);
-                        const model = genAI.getGenerativeModel({
-                            model: "gemini-flash-lite-latest",
-                        });
+                    let finalMessage = message;
 
-                        const prompt = `Analyze the provided git diff and generate a concise, professional commit message.
+                    if (!finalMessage || finalMessage.toLowerCase() === "auto") {
+                        const geminiKey = config.get("ramadanny-gits-gemini-key");
+                        if (!geminiKey) {
+                            global.log.error(
+                                'Error: Gemini API Key not found. Please run "gits set gemini <key>" first.'
+                            );
+                            return;
+                        }
+
+                        global.log.info("Analyzing changes with Gemini AI...");
+                        const diff = await git.diff(["--cached"]);
+
+                        if (!diff) {
+                            global.log.error(
+                                "Error: No diff output available to generate commit message."
+                            );
+                            return;
+                        }
+
+                        try {
+                            const genAI = new GoogleGenerativeAI(geminiKey);
+                            const model = genAI.getGenerativeModel({
+                                model: "gemini-flash-lite-latest",
+                            });
+
+                            const prompt = `Analyze the provided git diff and generate a concise, professional commit message.
 You MUST adhere strictly to the Conventional Commits specification.
 Use one of the following types based on the changes:
 - feat: A new feature
@@ -158,25 +188,23 @@ Rules:
 Diff:
 ${diff.slice(0, 10000)}`;
 
-                        const result = await model.generateContent(prompt);
-                        finalMessage = result.response.text().trim();
-                        global.log.info(`message: ${finalMessage}`);
-                    } catch (aiError) {
-                        global.log.error(
-                            `Failed to generate message from Gemini: ${aiError.message}`
-                        );
-                        return;
+                            const result = await model.generateContent(prompt);
+                            finalMessage = result.response.text().trim();
+                            global.log.info(`message: ${finalMessage}`);
+                        } catch (aiError) {
+                            global.log.error(
+                                `Failed to generate message from Gemini: ${aiError.message}`
+                            );
+                            return;
+                        }
                     }
-                }
 
-                await git.commit(finalMessage);
-
-                const remotes = await git.getRemotes(true);
-                if (remotes.length === 0) {
-                    global.log.error(
-                        'Remote "origin" not found. Add it using "gits remote add <url>".'
+                    await git.commit(finalMessage);
+                    committedJustNow = true;
+                } else {
+                    global.log.info(
+                        "No uncommitted changes detected. Proceeding to push existing commits..."
                     );
-                    return;
                 }
 
                 const status = await git.status();
@@ -184,6 +212,8 @@ ${diff.slice(0, 10000)}`;
                 const targetRemotes = options.all
                     ? remotes
                     : [remotes.find((r) => r.name === "origin")].filter(Boolean);
+
+                let pushFailed = false;
 
                 for (const remote of targetRemotes) {
                     const remoteUrl = remote.refs.push.replace(
@@ -194,12 +224,27 @@ ${diff.slice(0, 10000)}`;
                     if (options.force) pushArgs.unshift("-f");
                     if (options.setUpstream) pushArgs.unshift("-u");
 
-                    global.log.info(`Pushing to ${remote.name}/${branch}.`);
+                    global.log.info(`Pushing to ${remote.name}/${branch}...`);
                     try {
                         await git.push(pushArgs);
                         global.log.info(`Successfully pushed to ${remote.name}.`);
                     } catch (pushErr) {
+                        pushFailed = true;
                         global.log.error(`Failed to push to ${remote.name}: ${pushErr.message}`);
+                    }
+                }
+
+                if (pushFailed && committedJustNow) {
+                    global.log.info(
+                        "\nRolling back commit to keep files staged due to push failure..."
+                    );
+                    try {
+                        await git.reset(["--soft", "HEAD~1"]);
+                        global.log.info(
+                            "Rollback successful. Fix the conflicts (e.g. git pull) and try again."
+                        );
+                    } catch (resetErr) {
+                        global.log.error("Failed to rollback commit.");
                     }
                 }
             } catch (error) {
