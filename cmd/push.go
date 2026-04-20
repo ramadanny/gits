@@ -159,7 +159,7 @@ Rules:
 1. Output ONLY the raw commit message string.
 2. Do NOT include markdown formatting, backticks, or quotes.
 3. Do NOT add any conversational text or explanations.
-4. Keep the first line (summary) under 72 characters.
+4. Keep the first line (summary) under 70 characters.
 
 Diff:
 %s`, diff)
