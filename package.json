@@ -7,9 +7,6 @@
     "bin": {
         "gits": "./src/index.js"
     },
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
     "keywords": [
         "git",
         "cli",
@@ -19,8 +16,8 @@
     "author": "ramadanny",
     "license": "Apache-2.0",
     "dependencies": {
-        "commander": "^12.0.0",
-        "conf": "^12.0.0",
-        "simple-git": "^3.24.0"
+        "commander": "^14.0.3",
+        "conf": "^15.1.0",
+        "simple-git": "^3.36.0"
     }
 }

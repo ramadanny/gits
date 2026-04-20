@@ -98,15 +98,7 @@ Currently, the tool can be installed globally from the source directory.
     npm install
     ```
 
-3. **Install globally (Symlink):**
-
-    ```bash
-    npm link
-    ```
-
-    _(Alternatively, use `npm install -g .`)_
-
-4. **Verify Installation:**
+3. **Verify Installation:**
     ```bash
     gits --version
     ```
