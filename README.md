@@ -45,7 +45,7 @@ When you run a push via `gits`, it automatically:
 - **Git Interoperability:** [simple-git](https://github.com/steveukx/git-js)
 - **AI Integration:** [@google/generative-ai](https://www.npmjs.com/package/@google/generative-ai)
 - **Configuration Storage:** [conf](https://github.com/sindresorhus/conf)
-- **Styling:** Custom ANSI escape codes (with a fallback `chalk` dependency)
+- **Styling:** Custom ANSI escape codes
 
 ---
 
