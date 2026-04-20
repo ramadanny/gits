@@ -10,7 +10,6 @@
 REPO="ramadanny/gits"
 BINARY_NAME="gits"
 
-# Basic Colors for Clarity
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -71,7 +70,14 @@ INDEX=$((SELECTION-1))
 SELECTED_ASSET="${ASSETS[$INDEX]}"
 URL="https://github.com/$REPO/releases/download/$LATEST_TAG/$SELECTED_ASSET"
 
-# 4. Path Logic
+# 4. Path Logic & TMP Logic
+# Cek apakah folder /tmp ada, jika tidak gunakan folder saat ini
+if [ -d "/tmp" ]; then
+    TMP_DIR="/tmp"
+else
+    TMP_DIR="."
+fi
+
 if [[ "$SELECTED_ASSET" == *"android"* ]]; then
     INSTALL_PATH="${PREFIX:-/data/data/com.termux/files/usr}/bin"
     SUDO=""
@@ -86,13 +92,13 @@ fi
 
 # 5. Download and Move
 echo -e "\n${BLUE}[*] Downloading $SELECTED_ASSET...${NC}"
-TMP_FILE="/tmp/$SELECTED_ASSET"
+TMP_FILE="$TMP_DIR/$SELECTED_ASSET"
 
-# Using standard progress bar
-curl -L -q -# "$URL" -o "$TMP_FILE"
+# Gunakan -L untuk follow redirect dan -# untuk progress bar
+curl -L -# "$URL" -o "$TMP_FILE"
 
-if [ ! -s "$TMP_FILE" ] || grep -q "Not Found" "$TMP_FILE"; then
-    echo -e "${RED}[!] Download failed.${NC}"; rm -f "$TMP_FILE"; exit 1
+if [ ! -f "$TMP_FILE" ] || [ ! -s "$TMP_FILE" ]; then
+    echo -e "${RED}[!] Download failed or file is empty.${NC}"; rm -f "$TMP_FILE"; exit 1
 fi
 
 chmod +x "$TMP_FILE"
