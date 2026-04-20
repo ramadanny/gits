@@ -56,7 +56,7 @@ gits/
 To install GitS across any supported OS and architecture (Linux, macOS, Windows, Android/Termux), simply run the following command in your terminal:
 
 ```bash
-curl -fsSL [https://raw.githubusercontent.com/ramadanny/gits/main/install.sh](https://raw.githubusercontent.com/ramadanny/gits/main/install.sh) | bash
+curl -fsSL https://raw.githubusercontent.com/ramadanny/gits/main/install.sh | bash
 ```
 
 ---
@@ -71,9 +71,9 @@ Configure your Git platform credentials and Gemini API key securely. GitS uses a
 gits setup
 
 # Or set them manually:
-gits set username `your-username`
-gits set token `your-personal-access-token`
-gits set gemini `your-gemini-api-key
+gits set username <your-username>
+gits set token <your-personal-access-token>
+gits set gemini <your-gemini-api-key>
 ````
 
 ### 2. Pushing Code
@@ -105,8 +105,8 @@ gits branch feature/new-payment-gateway
 Manage your repository origins without touching standard git syntax.
 ```bash
 gits remote check
-gits remote add https://github.com/user/repo.git
-gits remote set https://github.com/user/repo.git
+gits remote add <url>
+gits remote set <url>
 ```
 
 ### 5. Undo Operations
