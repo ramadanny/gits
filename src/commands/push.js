@@ -116,7 +116,7 @@ export default function pushCmds(program) {
 
                     try {
                         const genAI = new GoogleGenerativeAI(geminiKey);
-                        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                        const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
                         
                         const prompt = `Analyze the provided git diff and generate a concise, professional commit message.
 You MUST adhere strictly to the Conventional Commits specification.
