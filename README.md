@@ -51,7 +51,7 @@ When you run a push via `gits`, it automatically:
 
 ## 📂 Project Structure
 
-~~~text
+```text
 gits/
 ├── src/
 │   ├── index.js               # Application entry point, CLI router, & UI logic
@@ -65,7 +65,7 @@ gits/
 ├── LICENSE                    # Apache 2.0 License definitions
 ├── package.json               # Node.js dependencies and script registry
 └── README.md                  # Project documentation
-~~~
+```
 
 ### Architectural Flow
 
@@ -91,21 +91,21 @@ Currently, the tool can be installed globally from the source directory.
 
 1. **Clone the repository:**
 
-    ~~~bash
+    ```bash
     git clone https://github.com/ramadanny/gits.git
     cd gits
-    ~~~
+    ```
 
 2. **Install dependencies:**
 
-    ~~~bash
+    ```bash
     npm install
-    ~~~
+    ```
 
 3. **Verify Installation:**
-    ~~~bash
+    ```bash
     gits --version
-    ~~~
+    ```
 
 ---
 
@@ -117,9 +117,9 @@ Before pushing code, you must configure your Git platform credentials. `gits` us
 
 The easiest way to get started is the interactive wizard:
 
-~~~bash
+```bash
 gits setup
-~~~
+```
 
 _You will be prompted to enter your GitHub/GitLab username, your Personal Access Token, and optionally your Gemini API Key._
 
@@ -127,11 +127,11 @@ _You will be prompted to enter your GitHub/GitLab username, your Personal Access
 
 You can also set these values individually:
 
-~~~bash
+```bash
 gits set username <your-username>
 gits set token <your-personal-access-token>
 gits set gemini <your-gemini-api-key>
-~~~
+```
 
 ---
 
@@ -142,14 +142,17 @@ gits set gemini <your-gemini-api-key>
 The crown jewel of the CLI. Adds, commits, checks security, and pushes.
 
 **Manual Commit:**
-~~~bash
+
+```bash
 gits push index.js "Initial Commit"
-~~~
+```
 
 **Auto Commit (AI-Generated):**
-~~~bash
+
+```bash
 gits push index.js auto
-~~~
+```
+
 _Analyzes changes and automatically generates a commit message following the Conventional Commits standard._
 
 **Options:**
@@ -162,7 +165,7 @@ _Analyzes changes and automatically generates a commit message following the Con
 
 View and configure your remote connections.
 
-~~~bash
+```bash
 # View current remotes
 gits remote check
 
@@ -171,23 +174,23 @@ gits remote add https://github.com/user/repo.git
 
 # Modify the existing origin
 gits remote set https://github.com/user/repo.git
-~~~
+```
 
 ### 3. Manage Branches (`gits branch`)
 
 Seamlessly switch branches or create a new one if it doesn't exist.
 
-~~~bash
+```bash
 gits branch feature/new-login
-~~~
+```
 
 ### 4. Undo Last Commit (`gits undo`)
 
 Made a mistake in your commit message? Missed a file? This command performs a `git reset --soft HEAD~1`, stripping the last commit but keeping all your file changes staged.
 
-~~~bash
+```bash
 gits undo
-~~~
+```
 
 ---
 
@@ -225,10 +228,12 @@ If you trigger this fail-safe, `gits` will explicitly list the vulnerable files 
 - **Fix:** Generate a new PAT on your Git provider and run `gits set token <new-token>`.
 
 **Error: "Gemini API Key not found"**
+
 - **Cause:** Attempting to use auto-commit without setting the API key.
 - **Fix:** Run `gits set gemini <key>` or `gits setup`.
 
 **Error: "Failed to generate message from Gemini"**
+
 - **Cause:** Invalid API key or model availability (Tool defaults to `gemini-pro`).
 - **Fix:** Ensure your key is valid and has access to the Gemini API.
 

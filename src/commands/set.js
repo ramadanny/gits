@@ -41,15 +41,18 @@ export default function setCmds(program) {
 
             rl.question("\x1b[37mEnter your GitHub Username: \x1b[0m", (usn) => {
                 rl.question("\x1b[37mEnter your GitHub Personal Access Token: \x1b[0m", (tok) => {
-                    rl.question("\x1b[37mEnter your Gemini API Key (optional, press enter to skip): \x1b[0m", (gemini) => {
-                        config.set("username", usn);
-                        config.set("token", tok);
-                        if (gemini.trim() !== "") {
-                            config.set("ramadanny-gits-gemini-key", gemini.trim());
+                    rl.question(
+                        "\x1b[37mEnter your Gemini API Key (optional, press enter to skip): \x1b[0m",
+                        (gemini) => {
+                            config.set("username", usn);
+                            config.set("token", tok);
+                            if (gemini.trim() !== "") {
+                                config.set("ramadanny-gits-gemini-key", gemini.trim());
+                            }
+                            global.log.info("\nConfiguration saved successfully!");
+                            rl.close();
                         }
-                        global.log.info("\nConfiguration saved successfully!");
-                        rl.close();
-                    });
+                    );
                 });
             });
         });

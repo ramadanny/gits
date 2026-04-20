@@ -21,9 +21,20 @@ export default function pushCmds(program) {
                 try {
                     await git.status();
                 } catch (err) {
-                    if (err.message.includes("dubious ownership") || err.message.includes("safe.directory")) {
-                        global.log.info("Detected dubious ownership. Automatically marking directory as safe.");
-                        await git.raw(["config", "--global", "--add", "safe.directory", process.cwd()]);
+                    if (
+                        err.message.includes("dubious ownership") ||
+                        err.message.includes("safe.directory")
+                    ) {
+                        global.log.info(
+                            "Detected dubious ownership. Automatically marking directory as safe."
+                        );
+                        await git.raw([
+                            "config",
+                            "--global",
+                            "--add",
+                            "safe.directory",
+                            process.cwd(),
+                        ]);
                         global.log.info("Directory marked as safe successfully.");
                     }
                 }
@@ -102,7 +113,9 @@ export default function pushCmds(program) {
                 if (!finalMessage || finalMessage.toLowerCase() === "auto") {
                     const geminiKey = config.get("ramadanny-gits-gemini-key");
                     if (!geminiKey) {
-                        global.log.error('Error: Gemini API Key not found. Please run "gits set gemini <key>" first.');
+                        global.log.error(
+                            'Error: Gemini API Key not found. Please run "gits set gemini <key>" first.'
+                        );
                         return;
                     }
 
@@ -110,14 +123,18 @@ export default function pushCmds(program) {
                     const diff = await git.diff(["--cached"]);
 
                     if (!diff) {
-                        global.log.error("Error: No diff output available to generate commit message.");
+                        global.log.error(
+                            "Error: No diff output available to generate commit message."
+                        );
                         return;
                     }
 
                     try {
                         const genAI = new GoogleGenerativeAI(geminiKey);
-                        const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
-                        
+                        const model = genAI.getGenerativeModel({
+                            model: "gemini-flash-lite-latest",
+                        });
+
                         const prompt = `Analyze the provided git diff and generate a concise, professional commit message.
 You MUST adhere strictly to the Conventional Commits specification.
 Use one of the following types based on the changes:
@@ -143,7 +160,9 @@ ${diff.slice(0, 10000)}`;
                         finalMessage = result.response.text().trim();
                         global.log.info(`message: ${finalMessage}`);
                     } catch (aiError) {
-                        global.log.error(`Failed to generate message from Gemini: ${aiError.message}`);
+                        global.log.error(
+                            `Failed to generate message from Gemini: ${aiError.message}`
+                        );
                         return;
                     }
                 }
