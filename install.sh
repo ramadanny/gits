@@ -2,31 +2,48 @@
 
 # ==========================================
 #             GitS Installer
-# ==========================================
-# Author: ramadanny
-# Repository: github.com/ramadanny/gits
+#        Aesthetic & Pro Edition
 # ==========================================
 
 REPO="ramadanny/gits"
 BINARY_NAME="gits"
 
-echo -e "\033[1;36m==========================================\033[0m"
-echo -e "\033[1;36m             GitS Installer               \033[0m"
-echo -e "\033[1;36m==========================================\033[0m"
+# Colors
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+clear
+
+# Aesthetic ASCII Art Header
+echo -e "${MAGENTA}${BOLD}"
+echo "    ________  _________  ____"
+echo "   / ____/ / / / ___/ / / / /"
+echo "  / / __/ / / /\__ \ / / / / "
+echo " / /_/ / /_/ /___/ // /_/ /  "
+echo " \____/\____//____/ \____/   "
+echo -e "      ${CYAN}GitS Toolchain Installer${NC}"
+echo -e "${BLUE}  ----------------------------------${NC}"
 
 # 1. Dependency Check
 check_dep() {
     if ! command -v $1 &> /dev/null; then
-        echo -e "\x1b[33m[!] Dependency '$1' is missing.\x1b[0m"
-        read -p "Install it now? [Y/n]: " choice </dev/tty
+        echo -e "${YELLOW}[!]${NC} Component ${BOLD}'$1'${NC} is missing."
+        echo -ne "${CYAN}[?]${NC} Install it now? (y/n): "
+        read -r choice </dev/tty
         case "$choice" in 
             y|Y|"" ) 
-                echo -e "\x1b[36m[*] Installing $1...\x1b[0m"
+                echo -e "${BLUE}[*]${NC} Deploying $1..."
                 if [ -d "/data/data/com.termux" ]; then pkg install $1 -y
                 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then sudo apt update && sudo apt install $1 -y
                 elif [[ "$OSTYPE" == "darwin"* ]]; then brew install $1
                 fi ;;
-            * ) echo -e "\x1b[31m[!] Aborted. '$1' is required.\x1b[0m"; exit 1 ;;
+            * ) echo -e "${RED}[!]${NC} Aborted. '$1' is required."; exit 1 ;;
         esac
     fi
 }
@@ -34,43 +51,37 @@ check_dep() {
 check_dep "curl"
 check_dep "git"
 
-# 2. Fetch Latest Release Data
-echo -e "\x1b[36m[*] Fetching latest assets from GitHub...\x1b[0m"
+# 2. Fetch Data
+echo -e "${BLUE}[*]${NC} Communicating with GitHub API..."
 LATEST_JSON=$(curl -s "https://api.github.com/repos/$REPO/releases/latest")
 LATEST_TAG=$(echo "$LATEST_JSON" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
 if [ -z "$LATEST_TAG" ]; then
-    echo -e "\x1b[31m[!] Failed to fetch release data.\x1b[0m"
+    echo -e "${RED}[!] Gagal sinkronisasi data rilis.${NC}"
     exit 1
 fi
 
-# 3. Parse Assets
+# 3. Assets Menu
 ASSETS=($(echo "$LATEST_JSON" | grep '"name":' | grep 'gits-' | sed -E 's/.*"([^"]+)".*/\1/'))
 
-if [ ${#ASSETS[@]} -eq 0 ]; then
-    echo -e "\x1b[31m[!] No binary assets found for $LATEST_TAG.\x1b[0m"
-    exit 1
-fi
-
-# 4. Interactive Selection Menu
-echo -e "\n\x1b[32mAvailable Binaries (Version $LATEST_TAG):\x1b[0m"
+echo -e "\n${MAGENTA}┌─${NC} ${BOLD}Select Environment${NC} (${LATEST_TAG})"
 for i in "${!ASSETS[@]}"; do
-    echo -e "  \x1b[33m$((i+1)).\x1b[0m ${ASSETS[$i]}"
+    echo -e "${MAGENTA}├─ [${NC}${CYAN}$((i+1))${NC}${MAGENTA}]${NC} ${ASSETS[$i]}"
 done
+echo -e "${MAGENTA}└───────────────────────────────${NC}"
 
-echo ""
-read -p "Select the number corresponding to your OS/Arch [1-${#ASSETS[@]}]: " SELECTION </dev/tty
+echo -ne "${CYAN}>>${NC} Choose Index: "
+read -r SELECTION </dev/tty
 
 if ! [[ "$SELECTION" =~ ^[0-9]+$ ]] || [ "$SELECTION" -lt 1 ] || [ "$SELECTION" -gt "${#ASSETS[@]}" ]; then
-    echo -e "\x1b[31m[!] Invalid selection. Aborting.\x1b[0m"
-    exit 1
+    echo -e "${RED}[!] Invalid choice.${NC}"; exit 1
 fi
 
 INDEX=$((SELECTION-1))
 SELECTED_ASSET="${ASSETS[$INDEX]}"
 URL="https://github.com/$REPO/releases/download/$LATEST_TAG/$SELECTED_ASSET"
 
-# 5. Determine Installation Path
+# 4. Path Configuration
 if [[ "$SELECTED_ASSET" == *"android"* ]]; then
     INSTALL_PATH="${PREFIX:-/data/data/com.termux/files/usr}/bin"
     SUDO=""
@@ -78,25 +89,24 @@ elif [[ "$SELECTED_ASSET" == *"windows"* ]]; then
     INSTALL_PATH="$PWD"
     SUDO=""
     BINARY_NAME="gits.exe"
-    echo -e "\x1b[33m[*] Windows Mode: Downloading to current directory.\x1b[0m"
 else
     INSTALL_PATH="/usr/local/bin"
     SUDO="sudo"
 fi
 
-# 6. Execution
-echo -e "\x1b[36m[*] Downloading $SELECTED_ASSET...\x1b[0m"
+# 5. Execution
+echo -e "\n${BLUE}[*]${NC} Downloading ${BOLD}$SELECTED_ASSET${NC}..."
 TMP_FILE="/tmp/$SELECTED_ASSET"
-curl -L -q --show-progress "$URL" -o "$TMP_FILE"
+
+# Progress bar modern
+curl -L -q -# "$URL" -o "$TMP_FILE"
 
 if [ ! -s "$TMP_FILE" ] || grep -q "Not Found" "$TMP_FILE"; then
-    echo -e "\x1b[31m[!] Download failed.\x1b[0m"
-    rm -f "$TMP_FILE"
-    exit 1
+    echo -e "${RED}[!] Transmission error.${NC}"; rm -f "$TMP_FILE"; exit 1
 fi
 
 chmod +x "$TMP_FILE"
-echo -e "\x1b[36m[*] Moving binary to $INSTALL_PATH/$BINARY_NAME...\x1b[0m"
+echo -e "${BLUE}[*]${NC} Installing to ${BOLD}$INSTALL_PATH${NC}..."
 
 if [ -n "$SUDO" ] && command -v sudo &> /dev/null; then
     $SUDO mv -f "$TMP_FILE" "$INSTALL_PATH/$BINARY_NAME"
@@ -104,5 +114,7 @@ else
     mv -f "$TMP_FILE" "$INSTALL_PATH/$BINARY_NAME"
 fi
 
-echo -e "\033[1;32m[+] GitS $LATEST_TAG installed successfully!\033[0m"
-echo -e "Run '\x1b[33m$BINARY_NAME --help\x1b[0m' to begin."
+# 6. Success Message
+echo -e "\n${GREEN}${BOLD}SUCCESS!${NC} GitS ${LATEST_TAG} is now active."
+echo -e "${MAGENTA}----------------------------------${NC}"
+echo -e "Type '${CYAN}${BINARY_NAME} --help${NC}' to explore commands."
