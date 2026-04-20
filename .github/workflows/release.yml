@@ -21,9 +21,9 @@ jobs:
           - goos: linux
             goarch: amd64
             ext: ""
-          - goos: linux
+          - goos: android 
             goarch: arm64
-            ext: "" # Bagus buat Termux/Android
+            ext: ""    
           - goos: windows
             goarch: amd64
             ext: ".exe"
@@ -32,7 +32,7 @@ jobs:
             ext: ""
           - goos: darwin
             goarch: arm64
-            ext: "" # Buat Mac M1/M2
+            ext: ""
 
     steps:
       - name: Checkout code

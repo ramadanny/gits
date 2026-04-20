@@ -142,10 +142,25 @@ func executePush(cmd *cobra.Command, args []string) {
 			client, err := genai.NewClient(ctx, option.WithAPIKey(geminiKey))
 			if err == nil {
 				defer client.Close()
-				model := client.GenerativeModel("gemini-1.5-flash-latest")
-				prompt := fmt.Sprintf(`Analyze the provided git diff and generate a concise, professional commit message.
+				model := client.GenerativeModel("gemini-flash-lite-latest")
+				prompt := fmt.Sprintf(`Analyze the provided git diff and generate a concise,Analyze the provided git diff and generate a concise, professional commit message.
 You MUST adhere strictly to the Conventional Commits specification.
-Output ONLY the raw commit message string. Keep the first line under 72 characters.
+Use one of the following types based on the changes:
+- feat: A new feature
+- fix: A bug fix
+- docs: Documentation only changes
+- style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+- refactor: A code change that neither fixes a bug nor adds a feature
+- perf: A code change that improves performance
+- test: Adding missing tests or correcting existing tests
+- chore: Changes to the build process or auxiliary tools and libraries such as documentation generation
+
+Rules:
+1. Output ONLY the raw commit message string.
+2. Do NOT include markdown formatting, backticks, or quotes.
+3. Do NOT add any conversational text or explanations.
+4. Keep the first line (summary) under 72 characters.
+
 Diff:
 %s`, diff)
 				
