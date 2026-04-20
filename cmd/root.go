@@ -13,7 +13,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:     "gits",
 	Short:   "A fast CLI tool for Git Push operations.",
-	Version: "1.0.0",
+	Version: "0.0.2",
 }
 
 func Execute() {
@@ -39,11 +39,7 @@ func init() {
 }
 
 func applyGradient(text string) string {
-	gradients := [][]int{
-		{100, 100, 100, 200, 200, 200},
-		{255, 50, 150, 255, 200, 220},
-	}
-	grad := gradients[rand.Intn(len(gradients))]
+	grad := []int{0, 0, 139, 255, 255, 255}
 	
 	lines := strings.Split(text, "\n")
 	var result []string
@@ -59,3 +55,4 @@ func applyGradient(text string) string {
 	}
 	return strings.Join(result, "\n")
 }
+
