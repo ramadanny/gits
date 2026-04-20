@@ -39,7 +39,8 @@ gits/
 ├── .github/workflows/    # CI/CD pipelines for automated multi-platform releases
 ├── install.sh            # Interactive bash installation script
 ├── main.go               # Application entry point
-└── go.mod                # Go module dependencies```
+└── go.mod                # Go module dependencies
+```
 
 ---
 
@@ -55,7 +56,8 @@ gits/
 To install GitS across any supported OS and architecture (Linux, macOS, Windows, Android/Termux), simply run the following command in your terminal:
 
 ```bash
-curl -fsSL [https://raw.githubusercontent.com/ramadanny/gits/main/install.sh](https://raw.githubusercontent.com/ramadanny/gits/main/install.sh) | bash```
+curl -fsSL [https://raw.githubusercontent.com/ramadanny/gits/main/install.sh](https://raw.githubusercontent.com/ramadanny/gits/main/install.sh) | bash
+```
 
 ---
 
@@ -71,18 +73,21 @@ gits setup
 # Or set them manually:
 gits set username `your-username`
 gits set token `your-personal-access-token`
-gits set gemini `your-gemini-api-key````
+gits set gemini `your-gemini-api-key
+````
 
 ### 2. Pushing Code
 The core command handles adding, scanning, committing, and pushing in one pipeline.
 
 **Manual Commit Message:**
 ```bash
-gits push . "feat: add user authentication"```
+gits push . "feat: add user authentication"
+```
 
 **AI-Generated Commit Message:**
 ```bash
-gits push . auto```
+gits push . auto
+```
 *(GitS will analyze your code changes and generate a semantic commit message via Gemini).*
 
 **Additional Push Flags:**
@@ -93,19 +98,22 @@ gits push . auto```
 ### 3. Branch Management
 Seamlessly switch to an existing branch or create a new one if it doesn't exist.
 ```bash
-gits branch feature/new-payment-gateway```
+gits branch feature/new-payment-gateway
+```
 
 ### 4. Remote Management
 Manage your repository origins without touching standard git syntax.
 ```bash
 gits remote check
 gits remote add [https://github.com/user/repo.git](https://github.com/user/repo.git)
-gits remote set [https://github.com/user/repo.git```](https://github.com/user/repo.git```)
+gits remote set [https://github.com/user/repo.git](https://github.com/user/repo.git)
+```
 
 ### 5. Undo Operations
 Made a mistake? Revert the last commit while keeping your files safely staged.
 ```bash
-gits undo```
+gits undo
+```
 
 ---
 
