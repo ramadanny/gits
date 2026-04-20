@@ -85,7 +85,6 @@ fi
 
 # 5. Download and Move
 echo -e "\n${BLUE}[*] Downloading $SELECTED_ASSET...${NC}"
-# Langsung download ke folder saat ini (.)
 TMP_FILE="./$SELECTED_ASSET"
 
 curl -L -q -# "$URL" -o "$TMP_FILE"
@@ -97,7 +96,6 @@ fi
 chmod +x "$TMP_FILE"
 echo -e "${BLUE}[*] Installing to $INSTALL_PATH/$BINARY_NAME...${NC}"
 
-# Pindahkan dari folder saat ini ke path instalasi
 if [ -n "$SUDO" ] && command -v sudo &> /dev/null; then
     $SUDO mv -f "$TMP_FILE" "$INSTALL_PATH/$BINARY_NAME"
 else
