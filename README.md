@@ -1,4 +1,3 @@
-# test
 # <div align='center'>🚀 GitS: Automated & Secure Git CLI</div>
 
 <div align="center">
