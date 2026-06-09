@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/ramadanny/gits/internal/gitops"
 	"github.com/ramadanny/gits/internal/logger"
 	"github.com/spf13/cobra"
@@ -15,7 +13,7 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			name := args[0]
-            
+			
 			_, err := gitops.Run("rev-parse", "--verify", name)
 
 			if err == nil {
