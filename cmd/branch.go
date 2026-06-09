@@ -15,9 +15,10 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			name := args[0]
-			branches, _ := gitops.Run("branch", "--list")
+            
+			_, err := gitops.Run("rev-parse", "--verify", name)
 
-			if strings.Contains(branches, name) {
+			if err == nil {
 				logger.Info("Switching to existing branch: " + name + "...")
 				gitops.Run("checkout", name)
 			} else {

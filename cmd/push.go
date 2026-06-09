@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"os"
@@ -23,19 +25,28 @@ var (
 )
 
 func init() {
-	pushCmd := &cobra.Command{
-		Use:   "push [path] [message]",
-		Short: "Push with safety checks. Use 'auto' as message for AI-generated commit.",
+	commitCmd := &cobra.Command{
+		Use:   "commit [path] [message]",
+		Short: "Add and commit with safety checks. Use 'auto' as message for AI-generated commit.",
 		Args:  cobra.RangeArgs(1, 2),
+		Run:   executeCommit,
+	}
+
+	pushCmd := &cobra.Command{
+		Use:   "push",
+		Short: "Push existing commits to remote.",
 		Run:   executePush,
 	}
+	
 	pushCmd.Flags().BoolVarP(&force, "force", "f", false, "Force push")
 	pushCmd.Flags().BoolVarP(&setUpstream, "set-upstream", "u", false, "Set upstream tracking")
 	pushCmd.Flags().BoolVarP(&pushAll, "all", "a", false, "Push to all registered remotes simultaneously")
+
+	rootCmd.AddCommand(commitCmd)
 	rootCmd.AddCommand(pushCmd)
 }
 
-func executePush(cmd *cobra.Command, args []string) {
+func executeCommit(cmd *cobra.Command, args []string) {
 	targetPath := args[0]
 	message := ""
 	if len(args) > 1 {
@@ -43,23 +54,31 @@ func executePush(cmd *cobra.Command, args []string) {
 	}
 
 	if _, err := os.Stat(".git"); os.IsNotExist(err) {
-		logger.Error("Error: Not a git repository. Please run 'gits remote add <url>' first to initialize.")
+		logger.Error("Error: Not a git repository.")
 		return
 	}
 
 	_, err := gitops.Run("status")
 	if err != nil && (strings.Contains(err.Error(), "dubious ownership") || strings.Contains(err.Error(), "safe.directory")) {
-		logger.Info("Detected dubious ownership. Automatically marking directory as safe.")
-		cwd, _ := os.Getwd()
-		gitops.Run("config", "--global", "--add", "safe.directory", cwd)
-		logger.Info("Directory marked as safe successfully.")
+		logger.Info("Detected dubious ownership.")
+		fmt.Print("\x1b[37mDo you want GitS to automatically mark this directory as safe globally? [Y/n]: \x1b[0m")
+		reader := bufio.NewReader(os.Stdin)
+		choice, _ := reader.ReadString('\n')
+		choice = strings.TrimSpace(strings.ToLower(choice))
+		if choice == "y" || choice == "" {
+			cwd, _ := os.Getwd()
+			gitops.Run("config", "--global", "--add", "safe.directory", cwd)
+			logger.Info("Directory marked as safe successfully.")
+		} else {
+			logger.Error("Operation aborted.")
+			return
+		}
 	}
 
 	if _, err := os.Stat(".gitignore"); os.IsNotExist(err) {
 		logger.Info("No .gitignore found. Generating default template.")
 		defaultIgnore := "node_modules/\n.env\n.env.*\n!.env.example\ndist/\nbuild/\n.DS_Store\ncoverage/\n"
 		os.WriteFile(".gitignore", []byte(defaultIgnore), 0644)
-		logger.Info("Created default .gitignore.")
 	}
 
 	logger.Info("Scanning for sensitive data.")
@@ -90,39 +109,23 @@ func executePush(cmd *cobra.Command, args []string) {
 	}
 
 	if len(detectedSecrets) > 0 {
-		isIgnored := true
-		gitignoreContent, _ := os.ReadFile(".gitignore")
-		ignoreStr := string(gitignoreContent)
-
+		isSafe := true
 		for _, secret := range detectedSecrets {
-			if !strings.Contains(ignoreStr, secret) {
-				isIgnored = false
-				logger.Error(fmt.Sprintf("CRITICAL: Sensitive file \"%s\" detected and NOT ignored.", secret))
+			_, errTracked := gitops.Run("ls-files", "--error-unmatch", secret)
+			_, errIgnore := gitops.Run("check-ignore", "-q", secret)
+			if errTracked == nil || errIgnore != nil {
+				isSafe = false
+				logger.Error(fmt.Sprintf("CRITICAL: Sensitive file \"%s\" is tracked or not safely ignored.", secret))
 			}
 		}
-		if !isIgnored {
-			logger.Error("\nPush aborted to prevent data leak.")
-			logger.Info("Please add the above files to .gitignore.")
+		if !isSafe {
+			logger.Error("\nCommit aborted to prevent data leak.")
 			return
 		}
 	}
 
-	remotes, _ := gitops.Run("remote")
-	if remotes == "" {
-		logger.Error("Remote \"origin\" not found. Add it using \"gits remote add <url>\".")
-		return
-	}
-
-	username := config.Get("username")
-	token := config.Get("token")
-	if username == "" || token == "" {
-		logger.Error("Error: Please run \"gits setup\" first.")
-		return
-	}
-
 	statusOut, _ := gitops.Run("status", "--porcelain")
 	hasChanges := len(strings.TrimSpace(statusOut)) > 0
-	committedJustNow := false
 
 	if hasChanges {
 		gitops.Run("add", targetPath)
@@ -131,15 +134,18 @@ func executePush(cmd *cobra.Command, args []string) {
 		if finalMessage == "" || strings.ToLower(finalMessage) == "auto" {
 			geminiKey := config.Get("ramadanny-gits-gemini-key")
 			if geminiKey == "" {
-				logger.Error("Error: Gemini API Key not found. Please run \"gits set gemini <key>\" first.")
+				logger.Error("Error: Gemini API Key not found.")
 				return
 			}
 
 			logger.Info("Analyzing changes with Gemini AI...")
 			diff, _ := gitops.Run("diff", "--cached")
 
-			ctx := context.Background()
+			if len(diff) > 12000 {
+				diff = diff[:12000] + "\n\n...[DIFF TRUNCATED DUE TO LENGTH]"
+			}
 
+			ctx := context.Background()
 			net.DefaultResolver = &net.Resolver{
 				PreferGo: true,
 				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
@@ -189,56 +195,73 @@ Diff:
 				finalMessage = strings.TrimSpace(finalMessage)
 				logger.Info(fmt.Sprintf("message: %s", finalMessage))
 			} else {
-				logger.Error("Gemini returned empty response or blocked by safety settings.")
+				logger.Error("Gemini returned empty response.")
 				return
 			}
 		}
 
 		gitops.Run("commit", "-m", finalMessage)
-		committedJustNow = true
+		logger.Info("Successfully committed. Use 'gits push' to upload.")
 	} else {
-		logger.Info("No uncommitted changes detected. Proceeding to push existing commits...")
+		logger.Info("No uncommitted changes detected in the specified path.")
+	}
+}
+
+func executePush(cmd *cobra.Command, args []string) {
+	remotes, _ := gitops.Run("remote")
+	if remotes == "" {
+		logger.Error("Remote \"origin\" not found.")
+		return
 	}
 
-	remoteUrlOut, _ := gitops.Run("remote", "get-url", "origin")
-	remoteUrl := strings.TrimSpace(remoteUrlOut)
-
-	if strings.HasPrefix(remoteUrl, "https://") && username != "" && token != "" {
-		authStr := fmt.Sprintf("https://%s:%s@", username, token)
-		remoteUrl = strings.Replace(remoteUrl, "https://", authStr, 1)
-	} else if remoteUrl == "" {
-		remoteUrl = "origin"
+	username := config.Get("username")
+	token := config.Get("token")
+	if username == "" || token == "" {
+		logger.Error("Error: Please run \"gits setup\" first.")
+		return
 	}
 
-	pushArgs := []string{"push"}
-	if force {
-		pushArgs = append(pushArgs, "-f")
-	}
-	if setUpstream {
-		pushArgs = append(pushArgs, "-u", remoteUrl, "HEAD")
-	} else {
-		pushArgs = append(pushArgs, remoteUrl, "HEAD")
-	}
-
-	safeUrlParts := strings.Split(remoteUrl, "@")
-	safeUrlToPrint := remoteUrl
-	if len(safeUrlParts) > 1 {
-		safeUrlToPrint = safeUrlParts[len(safeUrlParts)-1]
-	}
-	logger.Info(fmt.Sprintf("Pushing to %s...", safeUrlToPrint))
-
-	pushCmdExec := exec.Command("git", pushArgs...)
-	pushCmdExec.Stdout = os.Stdout
-	pushCmdExec.Stderr = os.Stderr
-	err = pushCmdExec.Run()
-
-	if err != nil {
-		logger.Error("Failed to push.")
-		if committedJustNow {
-			logger.Info("\nRolling back commit to keep files staged due to push failure...")
-			gitops.Run("reset", "--soft", "HEAD~1")
+	var targetRemotes []string
+	if pushAll {
+		remotesOut, _ := gitops.Run("remote")
+		for _, r := range strings.Split(strings.TrimSpace(remotesOut), "\n") {
+			if r != "" {
+				targetRemotes = append(targetRemotes, strings.TrimSpace(r))
+			}
 		}
 	} else {
-		logger.Info("Successfully pushed.")
+		targetRemotes = append(targetRemotes, "origin")
+	}
+
+	for _, remote := range targetRemotes {
+		logger.Info(fmt.Sprintf("Pushing to %s...", remote))
+		
+		pushArgs := []string{}
+		if username != "" && token != "" {
+			authStr := base64.StdEncoding.EncodeToString([]byte(username + ":" + token))
+			pushArgs = append(pushArgs, "-c", "http.extraHeader=Authorization: Basic "+authStr)
+		}
+		
+		pushArgs = append(pushArgs, "push")
+
+		if force {
+			pushArgs = append(pushArgs, "-f")
+		}
+		if setUpstream {
+			pushArgs = append(pushArgs, "-u", remote, "HEAD")
+		} else {
+			pushArgs = append(pushArgs, remote, "HEAD")
+		}
+
+		pushCmdExec := exec.Command("git", pushArgs...)
+		pushCmdExec.Stdout = os.Stdout
+		pushCmdExec.Stderr = os.Stderr
+		err := pushCmdExec.Run()
+
+		if err != nil {
+			logger.Error(fmt.Sprintf("Failed to push to %s.", remote))
+		} else {
+			logger.Info(fmt.Sprintf("Successfully pushed to %s.", remote))
+		}
 	}
 }
