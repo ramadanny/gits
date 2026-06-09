@@ -13,6 +13,7 @@ func init() {
 	stackCmd := &cobra.Command{
 		Use:     "stack",
 		Aliases: []string{"log"},
+		Short:   "View your unpushed local commit stack",
 		Run: func(cmd *cobra.Command, args []string) {
 			branch, _ := gitops.Run("branch", "--show-current")
 			out, err := gitops.Run("log", "--format=%h|%s", "origin/"+branch+"..HEAD")

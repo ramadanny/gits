@@ -14,6 +14,7 @@ func init() {
 	undoCmd := &cobra.Command{
 		Use:     "undo [number|all]",
 		Aliases: []string{"unstack"},
+		Short:   "Undo local commits in the stack while keeping files staged",
 		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			target := "1"
