@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/ramadanny/gits/internal/gitops"
@@ -25,9 +26,10 @@ func init() {
 				logger.Info("No git repository found. Initializing...")
 				gitops.Run("init")
 			}
+			
 			_, err := gitops.Run("remote", "add", "origin", args[0])
 			if err != nil {
-				logger.Error("Failed to add remote. Make sure origin does not already exist.")
+				logger.Error(fmt.Sprintf("Failed to add remote. Error: %v", err))
 				return
 			}
 			logger.Info("Remote origin added successfully: " + args[0])
@@ -41,7 +43,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			_, err := gitops.Run("remote", "set-url", "origin", args[0])
 			if err != nil {
-				logger.Error("Failed to change remote. Make sure origin exists.")
+				logger.Error(fmt.Sprintf("Failed to change remote. Error: %v", err))
 				return
 			}
 			logger.Info("Remote origin changed successfully to: " + args[0])
