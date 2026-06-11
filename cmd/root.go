@@ -9,10 +9,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var Version = "dev"
+
 var rootCmd = &cobra.Command{
 	Use:     "gits",
 	Short:   "A fast CLI tool for Git Push operations.",
-	Version: "0.0.7",
+	Version: Version,
 }
 
 func Execute() {
