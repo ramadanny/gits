@@ -1,4 +1,4 @@
-name: Release GitS
+name: Compile GitS & Release
 
 on:
   workflow_dispatch: 
@@ -63,7 +63,15 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          go build -ldflags="-s -w -X 'github.com/ramadanny/gits/cmd.Version=${{ env.RELEASE_VERSION }}'" -o gits-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} main.go
+          go build -trimpath -ldflags="-s -w -X 'github.com/ramadanny/gits/cmd.Version=${{ env.RELEASE_VERSION }}'" -o gits-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} main.go
+
+      - name: Install UPX
+        if: matrix.goos != 'darwin'
+        run: sudo apt-get update && sudo apt-get install -y upx-ucl
+
+      - name: Compress Binary with UPX
+        if: matrix.goos != 'darwin'
+        run: upx --best --lzma gits-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
