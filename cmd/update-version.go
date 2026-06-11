@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -30,6 +32,14 @@ func init() {
 		Short: "Update GitS via an interactive installer wizard",
 		Long:  "Connects to GitHub to list releases, lets you choose a version and binary, and handles the installation safely.",
 		Run: func(cmd *cobra.Command, args []string) {
+			net.DefaultResolver = &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+					d := net.Dialer{}
+					return d.DialContext(ctx, "udp", "8.8.8.8:53")
+				},
+			}
+
 			reader := bufio.NewReader(os.Stdin)
 
 			askYesNo := func(prompt string) bool {
