@@ -1,7 +1,17 @@
 name: Release GitS
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Select version bump type (SemVer)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -41,7 +51,7 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Generate Sequential Version
+      - name: Generate Semantic Version
         id: auto_version
         run: |
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
@@ -50,10 +60,22 @@ jobs:
           VERSION_NO_V=${LATEST_TAG#v}
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NO_V"
           
-          NEXT_PATCH=$((PATCH + 1))
-          RELEASE_VERSION="v$MAJOR.$MINOR.$NEXT_PATCH"
+          BUMP_TYPE="${{ github.event.inputs.bump_type }}"
           
-          echo "Target release version: $RELEASE_VERSION"
+          if [ "$BUMP_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+          
+          RELEASE_VERSION="v$MAJOR.$MINOR.$PATCH"
+          
+          echo "Target release version: $RELEASE_VERSION ($BUMP_TYPE bump)"
           echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
 
       - name: Install dependencies
