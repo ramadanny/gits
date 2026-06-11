@@ -1,4 +1,4 @@
-name: Release GitS
+name: Compile & Release GitS
 
 on:
   workflow_dispatch:
