@@ -173,17 +173,6 @@ func init() {
 				return
 			}
 
-			if runtime.GOOS != "windows" {
-				if askYesNo("\x1b[34m[?]\x1b[0m Grant executable permissions (chmod +x)? [Y/n]: ") {
-					if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
-						logger.Error(fmt.Sprintf("[!] Failed to apply chmod permissions: %v", err))
-						return
-					}
-				} else {
-					logger.Info("\x1b[34m[*] Skipping chmod configuration.\x1b[0m")
-				}
-			}
-
 			tmpFile.Close()
 
 			logger.Info("\x1b[34m[*] Installing system update...\x1b[0m")

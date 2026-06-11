@@ -152,20 +152,4 @@ else
     mv -f "$TMP_FILE" "$INSTALL_PATH/$BINARY_NAME"
 fi
 
-if [[ "$SELECTED_ASSET" != *"windows"* ]]; then
-    read -p "Grant executable permissions (chmod +x)? [Y/n]: " CHMOD_CHOICE </dev/tty
-    case "$CHMOD_CHOICE" in
-        y|Y|"" )
-            if [ -n "$SUDO" ] && command -v sudo &> /dev/null; then
-                $SUDO chmod +x "$INSTALL_PATH/$BINARY_NAME"
-            else
-                chmod +x "$INSTALL_PATH/$BINARY_NAME"
-            fi
-            ;;
-        * )
-            echo -e "${BLUE}[*] Skipping chmod configuration.${NC}"
-            ;;
-    esac
-fi
-
-echo -e "${GREEN}[+] GitS $SELECTED_TAG installed successfully.${NC}"}"
+echo -e "${GREEN}[+] GitS $SELECTED_TAG installed successfully.${NC}"
