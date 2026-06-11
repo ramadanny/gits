@@ -144,20 +144,6 @@ if [ ! -f "$TMP_FILE" ] || [ ! -s "$TMP_FILE" ]; then
     echo -e "${RED}[!] Download failed.${NC}"; rm -f "$TMP_FILE"; exit 1
 fi
 
-if [[ "$SELECTED_ASSET" != *"windows"* ]]; then
-    read -p "Grant executable permissions (chmod +x)? [Y/n]: " CHMOD_CHOICE </dev/tty
-    case "$CHMOD_CHOICE" in
-        y|Y|"" )
-            chmod +x "$TMP_FILE"
-            ;;
-        * )
-            echo -e "${BLUE}[*] Skipping chmod configuration.${NC}"
-            ;;
-    esac
-else
-    chmod +x "$TMP_FILE"
-fi
-
 echo -e "${BLUE}[*] Installing to $INSTALL_PATH/$BINARY_NAME...${NC}"
 
 if [ -n "$SUDO" ] && command -v sudo &> /dev/null; then
@@ -166,4 +152,20 @@ else
     mv -f "$TMP_FILE" "$INSTALL_PATH/$BINARY_NAME"
 fi
 
-echo -e "${GREEN}[+] GitS $SELECTED_TAG installed successfully.${NC}"
+if [[ "$SELECTED_ASSET" != *"windows"* ]]; then
+    read -p "Grant executable permissions (chmod +x)? [Y/n]: " CHMOD_CHOICE </dev/tty
+    case "$CHMOD_CHOICE" in
+        y|Y|"" )
+            if [ -n "$SUDO" ] && command -v sudo &> /dev/null; then
+                $SUDO chmod +x "$INSTALL_PATH/$BINARY_NAME"
+            else
+                chmod +x "$INSTALL_PATH/$BINARY_NAME"
+            fi
+            ;;
+        * )
+            echo -e "${BLUE}[*] Skipping chmod configuration.${NC}"
+            ;;
+    esac
+fi
+
+echo -e "${GREEN}[+] GitS $SELECTED_TAG installed successfully.${NC}"}"

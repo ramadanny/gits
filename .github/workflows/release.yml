@@ -63,7 +63,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          go build -ldflags="-s -w" -o gits-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} main.go
+          go build -ldflags="-s -w -X 'github.com/ramadanny/gits/cmd.Version=${{ env.RELEASE_VERSION }}'" -o gits-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} main.go
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
