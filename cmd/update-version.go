@@ -26,6 +26,23 @@ type GitHubRelease struct {
 	} `json:"assets"`
 }
 
+type ProgressWriter struct {
+	Total   int64
+	Current int64
+}
+
+func (pw *ProgressWriter) Write(p []byte) (int, error) {
+	n := len(p)
+	pw.Current += int64(n)
+	if pw.Total > 0 {
+		percent := float64(pw.Current) / float64(pw.Total) * 100
+		fmt.Printf("\033[2K\r\x1b[34m[*] Downloading... %.2f%%\x1b[0m", percent)
+	} else {
+		fmt.Printf("\033[2K\r\x1b[34m[*] Downloading... %d bytes\x1b[0m", pw.Current)
+	}
+	return n, nil
+}
+
 func init() {
 	updateCmd := &cobra.Command{
 		Use:   "update",
@@ -139,7 +156,7 @@ func init() {
 				selectedAsset = selectedRelease.Assets[assetIdx-1].Name
 			}
 
-			logger.Info(fmt.Sprintf("\n\x1b[34m[*] Downloading %s...\x1b[0m", selectedAsset))
+			logger.Info(fmt.Sprintf("\n\x1b[34m[*] Preparing to download %s...\x1b[0m", selectedAsset))
 			execPath, err := os.Executable()
 			if err != nil {
 				logger.Error(fmt.Sprintf("[!] Failed to detect current installation path: %v", err))
@@ -167,7 +184,10 @@ func init() {
 				return
 			}
 
-			_, err = io.Copy(tmpFile, assetResp.Body)
+			pw := &ProgressWriter{Total: assetResp.ContentLength}
+			_, err = io.Copy(io.MultiWriter(tmpFile, pw), assetResp.Body)
+			fmt.Println()
+
 			if err != nil {
 				logger.Error(fmt.Sprintf("[!] Failed to save binary file: %v", err))
 				return
@@ -190,6 +210,11 @@ func init() {
 			}
 
 			logger.Info(fmt.Sprintf("\x1b[32m[+] Success. GitS has been updated to version %s.\x1b[0m", selectedRelease.TagName))
+
+			if runtime.GOOS != "windows" {
+				fmt.Printf("\n\x1b[34m[!] Please remember to grant executable permissions manually by running:\x1b[0m\n")
+				fmt.Printf("    \x1b[37mchmod +x %s\x1b[0m\n", execPath)
+			}
 		},
 	}
 
