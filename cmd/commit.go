@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -17,6 +18,22 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/api/option"
 )
+
+type Config struct {
+	Features struct {
+		ScanSecrets           bool `json:"scan_secrets"`
+		ScanTodos             bool `json:"scan_todos"`
+		AutoMarkSafeDirectory bool `json:"auto_mark_safe_directory"`
+	} `json:"features"`
+	Commit struct {
+		AIModel        string `json:"ai_model"`
+		PromptLanguage string `json:"prompt_language"`
+	} `json:"commit"`
+	Security struct {
+		CustomBannedFiles []string `json:"custom_banned_files"`
+		CustomBannedExts  []string `json:"custom_banned_exts"`
+	} `json:"security"`
+}
 
 var (
 	commitMessageFlag string
@@ -37,7 +54,24 @@ func init() {
 	rootCmd.AddCommand(commitCmd)
 }
 
+func loadConfig() Config {
+	var cfg Config
+	cfg.Features.ScanSecrets = true
+	cfg.Features.ScanTodos = true
+	cfg.Features.AutoMarkSafeDirectory = true
+	cfg.Commit.AIModel = "gemini-flash-lite-latest"
+	cfg.Commit.PromptLanguage = "english"
+
+	data, err := os.ReadFile(".gitsrc.json")
+	if err == nil {
+		json.Unmarshal(data, &cfg)
+	}
+	return cfg
+}
+
 func executeCommit(cmd *cobra.Command, args []string) {
+	cfg := loadConfig()
+
 	if !autoCommitFlag && commitMessageFlag == "" {
 		logger.Error("Error: Please provide a commit message using -m \"message\" or use --auto for AI.")
 		return
@@ -50,18 +84,24 @@ func executeCommit(cmd *cobra.Command, args []string) {
 
 	_, err := gitops.Run("status")
 	if err != nil && (strings.Contains(err.Error(), "dubious ownership") || strings.Contains(err.Error(), "safe.directory")) {
-		logger.Info("Detected dubious ownership.")
-		fmt.Print("\x1b[37mDo you want GitS to automatically mark this directory as safe globally? [Y/n]: \x1b[0m")
-		reader := bufio.NewReader(os.Stdin)
-		choice, _ := reader.ReadString('\n')
-		choice = strings.TrimSpace(strings.ToLower(choice))
-		if choice == "y" || choice == "" {
+		if cfg.Features.AutoMarkSafeDirectory {
+			logger.Info("Detected dubious ownership. Automatically marking directory as safe globally.")
 			cwd, _ := os.Getwd()
 			gitops.Run("config", "--global", "--add", "safe.directory", cwd)
-			logger.Info("Directory marked as safe successfully.")
 		} else {
-			logger.Error("Operation aborted.")
-			return
+			logger.Info("Detected dubious ownership.")
+			fmt.Print("\x1b[37mDo you want GitS to automatically mark this directory as safe globally? [Y/n]: \x1b[0m")
+			reader := bufio.NewReader(os.Stdin)
+			choice, _ := reader.ReadString('\n')
+			choice = strings.TrimSpace(strings.ToLower(choice))
+			if choice == "y" || choice == "" {
+				cwd, _ := os.Getwd()
+				gitops.Run("config", "--global", "--add", "safe.directory", cwd)
+				logger.Info("Directory marked as safe successfully.")
+			} else {
+				logger.Error("Operation aborted.")
+				return
+			}
 		}
 	}
 
@@ -71,46 +111,48 @@ func executeCommit(cmd *cobra.Command, args []string) {
 		os.WriteFile(".gitignore", []byte(defaultIgnore), 0644)
 	}
 
-	logger.Info("Scanning for sensitive data.")
-	files, _ := os.ReadDir(".")
-	bannedFiles := []string{".env", "id_rsa", "id_ed25519", "credentials.json"}
-	bannedExts := []string{".key", ".pem"}
+	if cfg.Features.ScanSecrets {
+		logger.Info("Scanning for sensitive data.")
+		files, _ := os.ReadDir(".")
+		bannedFiles := append([]string{".env", "id_rsa", "id_ed25519", "credentials.json"}, cfg.Security.CustomBannedFiles...)
+		bannedExts := append([]string{".key", ".pem"}, cfg.Security.CustomBannedExts...)
 
-	var detectedSecrets []string
-	for _, file := range files {
-		name := file.Name()
-		isBanned := false
-		for _, b := range bannedFiles {
-			if name == b {
-				isBanned = true
+		var detectedSecrets []string
+		for _, file := range files {
+			name := file.Name()
+			isBanned := false
+			for _, b := range bannedFiles {
+				if name == b {
+					isBanned = true
+				}
+			}
+			for _, ext := range bannedExts {
+				if strings.HasSuffix(name, ext) {
+					isBanned = true
+				}
+			}
+			if strings.Contains(name, ".env") && strings.HasSuffix(name, ".example") {
+				isBanned = false
+			}
+			if isBanned {
+				detectedSecrets = append(detectedSecrets, name)
 			}
 		}
-		for _, ext := range bannedExts {
-			if strings.HasSuffix(name, ext) {
-				isBanned = true
-			}
-		}
-		if strings.Contains(name, ".env") && strings.HasSuffix(name, ".example") {
-			isBanned = false
-		}
-		if isBanned {
-			detectedSecrets = append(detectedSecrets, name)
-		}
-	}
 
-	if len(detectedSecrets) > 0 {
-		isSafe := true
-		for _, secret := range detectedSecrets {
-			_, errTracked := gitops.Run("ls-files", "--error-unmatch", secret)
-			_, errIgnore := gitops.Run("check-ignore", "-q", secret)
-			if errTracked == nil || errIgnore != nil {
-				isSafe = false
-				logger.Error(fmt.Sprintf("CRITICAL: Sensitive file \"%s\" is tracked or not safely ignored.", secret))
+		if len(detectedSecrets) > 0 {
+			isSafe := true
+			for _, secret := range detectedSecrets {
+				_, errTracked := gitops.Run("ls-files", "--error-unmatch", secret)
+				_, errIgnore := gitops.Run("check-ignore", "-q", secret)
+				if errTracked == nil || errIgnore != nil {
+					isSafe = false
+					logger.Error(fmt.Sprintf("CRITICAL: Sensitive file \"%s\" is tracked or not safely ignored.", secret))
+				}
 			}
-		}
-		if !isSafe {
-			logger.Error("\nCommit aborted to prevent data leak.")
-			return
+			if !isSafe {
+				logger.Error("\nCommit aborted to prevent data leak.")
+				return
+			}
 		}
 	}
 
@@ -126,9 +168,11 @@ func executeCommit(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		if !analyzeTodos() {
-			logger.Error("\n[!] Commit aborted or no files left to commit.")
-			return
+		if cfg.Features.ScanTodos {
+			if !analyzeTodos() {
+				logger.Error("\n[!] Commit aborted or no files left to commit.")
+				return
+			}
 		}
 
 		finalMessage := ""
@@ -163,7 +207,7 @@ func executeCommit(cmd *cobra.Command, args []string) {
 			}
 			defer client.Close()
 
-			model := client.GenerativeModel("gemini-flash-lite-latest")
+			model := client.GenerativeModel(cfg.Commit.AIModel)
 			prompt := fmt.Sprintf(`Analyze the provided git diff and generate a concise, professional commit message.
 You MUST adhere strictly to the Conventional Commits specification.
 Use one of the following types based on the changes:
@@ -181,9 +225,10 @@ Rules:
 2. Do NOT include markdown formatting, backticks, or quotes.
 3. Do NOT add any conversational text or explanations.
 4. Keep the first line (summary) under 72 characters.
+5. The commit message MUST be written strictly in %s language.
 
 Diff:
-%s`, diff)
+%s`, cfg.Commit.PromptLanguage, diff)
 
 			resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 
