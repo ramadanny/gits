@@ -18,22 +18,29 @@ import (
 	"google.golang.org/api/option"
 )
 
+var (
+	commitMessageFlag string
+	autoCommitFlag    bool
+)
+
 func init() {
 	commitCmd := &cobra.Command{
-		Use:   "commit [path] [message]",
-		Short: "Add and commit with safety checks. Use 'auto' as message for AI-generated commit.",
-		Args:  cobra.RangeArgs(1, 2),
+		Use:   "commit [paths...]",
+		Short: "Add multiple files and commit. Use -m for message or --auto for AI.",
+		Args:  cobra.MinimumNArgs(1),
 		Run:   executeCommit,
 	}
+
+	commitCmd.Flags().StringVarP(&commitMessageFlag, "message", "m", "", "Manual commit message")
+	commitCmd.Flags().BoolVarP(&autoCommitFlag, "auto", "a", false, "Generate commit message using Gemini AI")
 
 	rootCmd.AddCommand(commitCmd)
 }
 
 func executeCommit(cmd *cobra.Command, args []string) {
-	targetPath := args[0]
-	message := ""
-	if len(args) > 1 {
-		message = args[1]
+	if !autoCommitFlag && commitMessageFlag == "" {
+		logger.Error("Error: Please provide a commit message using -m \"message\" or use --auto for AI.")
+		return
 	}
 
 	if _, err := os.Stat(".git"); os.IsNotExist(err) {
@@ -111,16 +118,22 @@ func executeCommit(cmd *cobra.Command, args []string) {
 	hasChanges := len(strings.TrimSpace(statusOut)) > 0
 
 	if hasChanges {
-		gitops.Run("add", targetPath)
+		for _, targetPath := range args {
+			_, errAdd := gitops.Run("add", targetPath)
+			if errAdd != nil {
+				logger.Error(fmt.Sprintf("[!] Failed to add path: %s", targetPath))
+				return
+			}
+		}
 
 		if !analyzeTodos() {
 			logger.Error("\n[!] Commit aborted or no files left to commit.")
 			return
 		}
 
-		finalMessage := message
+		finalMessage := ""
 
-		if finalMessage == "" || strings.ToLower(finalMessage) == "auto" {
+		if autoCommitFlag {
 			geminiKey := config.Get("ramadanny-gits-gemini-key")
 			if geminiKey == "" {
 				logger.Error("Error: Gemini API Key not found.")
@@ -187,6 +200,8 @@ Diff:
 				logger.Error("Gemini returned empty response.")
 				return
 			}
+		} else {
+			finalMessage = commitMessageFlag
 		}
 
 		out, err := gitops.Run("commit", "-m", finalMessage)
@@ -196,7 +211,7 @@ Diff:
 			logger.Info("Successfully committed. Use 'gits push' to upload.")
 		}
 	} else {
-		logger.Info("No uncommitted changes detected in the specified path.")
+		logger.Info("No uncommitted changes detected in the specified paths.")
 	}
 }
 
@@ -254,7 +269,7 @@ func analyzeTodos() bool {
 	var selected []string
 
 	prompt := &survey.MultiSelect{
-		Message: "Select files to UNSTACK:\n",
+		Message: "Select files to UNSTACK:",
 		Options: options,
 	}
 
