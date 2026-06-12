@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var stackDiffFlag bool
+
 func init() {
 	stackCmd := &cobra.Command{
 		Use:     "stack",
@@ -54,9 +56,24 @@ func init() {
 					}
 					logger.Info(fmt.Sprintf("   %s%s", prefix, file))
 				}
+
+				if stackDiffFlag {
+					diffOut, _ := gitops.Run("show", "--color=always", "--pretty=format:", "--patch", hash)
+					diffTrimmed := strings.TrimSpace(diffOut)
+					if diffTrimmed != "" {
+						fmt.Println()
+						diffLines := strings.Split(diffTrimmed, "\n")
+						for _, line := range diffLines {
+							fmt.Printf("      %s\n", line)
+						}
+						fmt.Println()
+					}
+				}
 			}
 		},
 	}
+
+	stackCmd.Flags().BoolVarP(&stackDiffFlag, "diff", "d", false, "Show detailed diff for each unpushed commit")
 
 	rootCmd.AddCommand(stackCmd)
 }
