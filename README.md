@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🚀 GitS: Automated & Secure Git CLI</h1>
+  <h1>⚡ GitS: No more complex Git commands, Just pure automation.</h1>
   
 <img src="https://cdn.jsdelivr.net/gh/ramadanny/cdn@main/gits-logo.png" alt="Header Image" width="100%"/>
 

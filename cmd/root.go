@@ -14,7 +14,7 @@ var Version = "dev"
 
 var rootCmd = &cobra.Command{
 	Use:     "gits",
-	Short:   "A fast CLI tool for Git Push operations.",
+	Short:   "No more complex Git commands, Just pure automation.",
 	Version: Version,
 }
 
@@ -35,7 +35,7 @@ func init() {
 # ╚██████╔╝ ██║    ██║    ███████║
 #  ╚═════╝  ╚═╝    ╚═╝    ╚══════╝
 	
-> A fast CLI tool for Git Push operations.`
+> No more complex Git commands, Just pure automation.`
 
 	rootCmd.Long = applyRadialGradient(asciiText)
 }
