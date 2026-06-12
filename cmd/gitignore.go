@@ -13,7 +13,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(&cobra.Command{
-		Use:   "ignore [languages...]",
+		Use:   "gitignore [languages...]",
 		Short: "Generate .gitignore rules from public templates",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
