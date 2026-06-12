@@ -10,22 +10,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var initConfigOnly bool
+
 func init() {
 	initCmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initialize a new Git repository and generate default .gitsrc.json",
+		Short: "Initialize a new Git repository and/or generate default .gitsrc.json",
 		Run:   executeInit,
 	}
+
+	initCmd.Flags().BoolVarP(&initConfigOnly, "config", "c", false, "Generate only the .gitsrc.json configuration file without initializing git")
+
 	rootCmd.AddCommand(initCmd)
 }
 
 func executeInit(cmd *cobra.Command, args []string) {
-	out, err := exec.Command("git", "init").CombinedOutput()
-	if err != nil {
+	if !initConfigOnly {
+		out, err := exec.Command("git", "init").CombinedOutput()
+		if err != nil {
+			fmt.Print(string(out))
+			return
+		}
 		fmt.Print(string(out))
-		return
 	}
-	fmt.Print(string(out))
 
 	if _, err := os.Stat(".gitsrc.json"); os.IsNotExist(err) {
 		cfg := Config{}
@@ -45,6 +52,10 @@ func executeInit(cmd *cobra.Command, args []string) {
 		err = os.WriteFile(".gitsrc.json", data, 0644)
 		if err == nil {
 			logger.Info("Generated default .gitsrc.json configuration file.")
+		}
+	} else {
+		if initConfigOnly {
+			logger.Info(".gitsrc.json already exists in this directory.")
 		}
 	}
 }
