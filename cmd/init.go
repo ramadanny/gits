@@ -33,7 +33,7 @@ func executeInit(cmd *cobra.Command, args []string) {
 		cfg.Features.ScanTodos = true
 		cfg.Features.AutoMarkSafeDirectory = true
 		cfg.Commit.AIModel = "gemini-flash-lite-latest"
-		cfg.Commit.PromptLanguage = "indonesian"
+		cfg.Commit.PromptLanguage = "english"
 		cfg.Security.CustomBannedFiles = []string{"config.production.json"}
 		cfg.Security.CustomBannedExts = []string{".pfx"}
 
