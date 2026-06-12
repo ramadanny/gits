@@ -37,7 +37,7 @@ func init() {
 				}
 				hash, msg := parts[0], parts[1]
 
-				logger.Info(fmt.Sprintf("\x1b[33m%d.\x1b[0m %s", i+1, msg))
+				logger.Info(fmt.Sprintf("\n\x1b[7;1;36m  STACK %d: %s  \x1b[0m \x1b[1;37m%s\x1b[0m", i+1, hash, msg))
 
 				filesOut, _ := gitops.Run("diff-tree", "--no-commit-id", "--name-only", "-r", hash)
 				files := strings.Split(strings.TrimSpace(filesOut), "\n")
