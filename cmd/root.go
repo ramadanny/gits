@@ -35,7 +35,7 @@ func init() {
 # ╚██████╔╝ ██║    ██║    ███████║
 #  ╚═════╝  ╚═╝    ╚═╝    ╚══════╝
 	
-A fast CLI tool for Git Push operations.`
+> A fast CLI tool for Git Push operations.`
 
 	rootCmd.Long = applyRadialGradient(asciiText)
 }
